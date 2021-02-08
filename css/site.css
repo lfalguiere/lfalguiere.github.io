@@ -9,6 +9,7 @@
 .profileimagecontainer {
     padding: 100px; 
     padding-bottom: 20px; 
+    padding-top: 40px; 
 }
 .profileimage {
     display: block;
