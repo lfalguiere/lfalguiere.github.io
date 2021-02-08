@@ -1,3 +1,4 @@
+
 .wrapper {
    
 }
@@ -10,6 +11,23 @@
     padding: 100px; 
     padding-bottom: 20px; 
     padding-top: 40px; 
+}
+.infocontainer {
+    padding: 150px; 
+    padding-bottom: 20px; 
+    padding-top: 10px; 
+    background-color: rgb(66, 66, 66);   display: block;
+    text-align: center;
+}
+.info {
+   color: white;
+   padding-left: 15px;
+   padding-right: 15px;
+}
+.info a {
+    color: #FFFFFF;
+    font-size: 30px;
+    text-decoration: none;
 }
 .profileimage {
     display: block;
