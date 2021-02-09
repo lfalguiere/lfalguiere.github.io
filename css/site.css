@@ -12,10 +12,11 @@
     padding-bottom: 20px; 
     padding-top: 40px; 
 }
-.infocontainer {
-    padding: 150px; 
+.infocontainer { 
     padding-bottom: 20px; 
     padding-top: 10px; 
+    padding-left: 40%; 
+    padding-right: 40%; 
     background-color: rgb(66, 66, 66);   display: block;
     text-align: center;
     display: table;
