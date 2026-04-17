@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Compte à rebours</title>
+
+<style>
+body {
+  margin: 0;
+  background: #000;
+  color: #4a4a4a;
+  font-family: "Inter", Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.countdown {
+  display: flex;
+  gap: 100px;
+  text-align: center;
+}
+
+/* Bloc */
+.box {
+  display: flex;
+  flex-direction: column;
+}
+
+
+.value {
+  font-size: 280px; 
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -2px;
+}
+
+.label {
+  font-size: 60px;
+  opacity: 0.6;
+  margin-top: 10px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="countdown">
+  <div class="box">
+    <div id="days" class="value">0</div>
+    <div class="label">Jours</div>
+  </div>
+
+  <div class="box">
+    <div id="hours" class="value">0</div>
+    <div class="label">Heures</div>
+  </div>
+
+  <div class="box">
+    <div id="minutes" class="value">0</div>
+    <div class="label">Minutes</div>
+  </div>
+</div>
+
+<script>
+const targetDate = new Date("2026-04-30T18:00:00").getTime();
+
+function updateCountdown() {
+  const now = Date.now();
+  const diff = targetDate - now;
+
+  if (diff <= 0) {
+    document.querySelector(".countdown").innerHTML = "<div class='value'>Terminé</div>";
+    return;
+  }
+
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+  document.getElementById("days").textContent = days;
+  document.getElementById("hours").textContent = hours;
+  document.getElementById("minutes").textContent = minutes;
+}
+
+// 🔥 Refresh précis chaque seconde
+updateCountdown();
+setInterval(updateCountdown, 30000);
+</script>
+
+</body>
+</html>
+
