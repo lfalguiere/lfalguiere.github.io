@@ -1,30 +1,227 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <title>Coming Soon</title>
-    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap" rel="stylesheet">
-    <style>
-        body {
-            margin: 0;
-            background-color: #000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
+<meta charset="UTF-8">
+<title>Laurent Falguière</title>
+<meta name="description" content="Laurent Falguière, DevOps, DevSecOps & Cybersécurité">
 
-        h1 {
-            font-family: 'Archivo Black', sans-serif;
-            color: #3a3a3a; /* gris foncé */
-            font-size: 10vw;
-            text-align: center;
-            margin: 0;
-            letter-spacing: 1px;
-        }
-    </style>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap" rel="stylesheet">
+
+<style>
+body {
+    margin: 0;
+    background-color: #000;
+    overflow: hidden;
+}
+
+/* Canvas background */
+#bg-invaders {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+}
+
+/* Texte au-dessus */
+h1 {
+    position: relative;
+    z-index: 1;
+
+    font-family: 'Archivo Black', sans-serif;
+    color: #3a3a3a;
+    font-size: 10vw;
+
+    margin: 0;
+    height: 100vh;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+</style>
 </head>
+
 <body>
-    <h1>Coming Soon</h1>
+
+<canvas id="bg-invaders"></canvas>
+
+<h1>Coming Soon</h1>
+
+<script>
+const canvas = document.getElementById('bg-invaders');
+const ctx = canvas.getContext('2d');
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+const ALIEN_COLOR = '#1f1f1f';
+const BULLET_COLOR = '#5a5a5a';
+
+
+const player = {
+    x: canvas.width / 2,
+    y: canvas.height - 60,
+    w: 28,
+    h: 6
+};
+
+let bullets = [];
+let aliens = [];
+let dir = 1;
+let speed = 0.3;
+
+// Déplacement random
+let aiOffset = 0;
+let aiOffsetTarget = 0;
+let aiTimer = 0;
+
+// spawn aliens
+function spawnAliens() {
+    aliens = [];
+
+    for (let y = 0; y < 5; y++) {
+        for (let x = 0; x < 10; x++) {
+            aliens.push({
+                x: 100 + x * 55,
+                y: 80 + y * 40,
+                w: 18,
+                h: 12,
+                alive: true
+            });
+        }
+    }
+}
+
+spawnAliens();
+
+// tir
+function shoot() {
+    bullets.push({
+        x: player.x,
+        y: player.y,
+        vy: -5
+    });
+}
+
+function updateAI() {
+    const alive = aliens.filter(a => a.alive);
+    if (!alive.length) return;
+
+    const center = alive.reduce((s, a) => s + a.x, 0) / alive.length;
+
+    aiTimer++;
+
+    if (aiTimer % 20 === 0 || Math.random() < 0.08) {
+        aiOffsetTarget = (Math.random() - 0.5) * 500; 
+         
+    }
+
+    // inertie  
+    aiOffset += (aiOffsetTarget - aiOffset) * 0.06;
+
+    // petite oscillation naturelle en plus
+    const wobble = Math.sin(Date.now() * 0.002) * 40;
+
+    const target = center + aiOffset + wobble;
+
+    // mouvement plus réactif
+    player.x += (target - player.x) * 0.1;
+}
+
+// update logique
+function update() {
+    updateAI();
+
+    if (Math.random() < 0.05) shoot();
+
+    bullets.forEach(b => b.y += b.vy);
+    bullets = bullets.filter(b => b.y > 0);
+
+    let edge = false;
+
+    aliens.forEach(a => {
+        if (!a.alive) return;
+
+        a.x += dir * speed;
+
+        if (a.x < 30 || a.x > canvas.width - 50) {
+            edge = true;
+        }
+    });
+
+    if (edge) {
+        dir *= -1;
+        aliens.forEach(a => a.y += 10);
+    }
+
+    // collisions
+    bullets.forEach(b => {
+        aliens.forEach(a => {
+            if (!a.alive) return;
+
+            if (
+                b.x > a.x &&
+                b.x < a.x + a.w &&
+                b.y > a.y &&
+                b.y < a.y + a.h
+            ) {
+                a.alive = false;
+            }
+        });
+    });
+
+    if (aliens.every(a => !a.alive)) {
+        spawnAliens();
+    }
+}
+
+// alien pyramidal
+function drawAlien(x, y) {
+    ctx.fillRect(x + 6, y, 6, 4);
+    ctx.fillRect(x + 2, y + 4, 14, 4);
+    ctx.fillRect(x, y + 8, 18, 4);
+}
+
+// rendu
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // aliens
+    ctx.fillStyle = ALIEN_COLOR;
+    aliens.forEach(a => {
+        if (!a.alive) return;
+        drawAlien(a.x, a.y);
+    });
+
+    // player
+    ctx.fillRect(player.x, player.y, player.w, player.h);
+    ctx.fillRect(player.x + 6, player.y - 4, 16, 4);
+
+    // bullets
+    ctx.fillStyle = BULLET_COLOR;
+    bullets.forEach(b => {
+        ctx.fillRect(b.x, b.y, 2, 8);
+    });
+}
+
+// loop
+function loop() {
+    update();
+    draw();
+    requestAnimationFrame(loop);
+}
+
+loop();
+
+// resize
+window.addEventListener('resize', () => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+});
+</script>
+
 </body>
 </html>
