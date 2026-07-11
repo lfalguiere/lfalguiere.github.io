@@ -73,7 +73,6 @@ export function updatePlayerPosition(lat, lng) {
   } else {
     playerMarker.setLatLng([lat, lng]);
   }
-  leafletMap.panTo([lat, lng], { animate: true, duration: 0.8 });
 }
 
 function updateMaskRing(lat, lng, radiusM) {
@@ -195,8 +194,8 @@ export function updateTrail(positions) {
 }
 
 // Affiche une carte récapitulative sur l'écran résultat avec le tracé du parcours
-// et le cercle de départ.
-export function renderResultMap(containerId, positions, initialCenter, initialRadius) {
+// et le dernier cercle de la zone (celui qui a déterminé la victoire/défaite).
+export function renderResultMap(containerId, positions, circleCenter, circleRadius) {
   if (resultMap) {
     resultMap.remove();
     resultMap = null;
@@ -216,15 +215,15 @@ export function renderResultMap(containerId, positions, initialCenter, initialRa
     maxZoom: 19,
   }).addTo(resultMap);
 
-  // Cercle de départ (limite initiale de la zone)
-  L.circle([initialCenter.lat, initialCenter.lng], {
-    radius: initialRadius,
+  // Dernier cercle de la zone (celui qui a déterminé la fin de partie)
+  L.circle([circleCenter.lat, circleCenter.lng], {
+    radius: circleRadius,
     color: '#ef5350',
     weight: 1.5,
     fillOpacity: 0,
     interactive: false,
   }).addTo(resultMap);
-  L.polygon([WORLD_RING, circleRingPoints(initialCenter.lat, initialCenter.lng, initialRadius)], {
+  L.polygon([WORLD_RING, circleRingPoints(circleCenter.lat, circleCenter.lng, circleRadius)], {
     stroke: false,
     fillColor: '#ef5350',
     fillOpacity: 0.18,
@@ -233,7 +232,7 @@ export function renderResultMap(containerId, positions, initialCenter, initialRa
 
   // Tracé du parcours
   const latlngs = positions.map(p => [p.lat, p.lng]);
-  L.polyline(latlngs, {
+  const trail = L.polyline(latlngs, {
     color: '#2196F3',
     weight: 3,
     opacity: 0.85,
@@ -250,9 +249,10 @@ export function renderResultMap(containerId, positions, initialCenter, initialRa
     radius: 6, color: '#fff', weight: 2, fillColor: '#ef5350', fillOpacity: 1,
   }).addTo(resultMap);
 
-  // Zoom pour montrer tout le parcours
-  resultMap.fitBounds(
-    L.latLng(initialCenter.lat, initialCenter.lng).toBounds(initialRadius * 2.2),
-    { animate: false, padding: [16, 16] }
+  // Zoom pour montrer à la fois tout le parcours ET le dernier cercle
+  // (le cercle final est souvent bien plus petit que le trajet parcouru).
+  const bounds = trail.getBounds().extend(
+    L.latLng(circleCenter.lat, circleCenter.lng).toBounds(circleRadius * 2.2)
   );
+  resultMap.fitBounds(bounds, { animate: false, padding: [16, 16] });
 }

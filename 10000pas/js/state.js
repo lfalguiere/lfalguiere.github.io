@@ -7,8 +7,6 @@ export const state = {
   zone: {
     center: null,         // { lat, lng }
     radiusMeters: 0,
-    initialCenter: null,  // centre du cercle de départ (ne change jamais)
-    initialRadius: 0,     // rayon du cercle de départ (ne change jamais)
     nextCenter: null,        // centre précalculé du prochain rétrécissement (aperçu)
     nextRadiusMeters: null,
     nextShrinkAt: null,
@@ -48,8 +46,6 @@ export function resetState() {
   state.targetPos = null;
   state.zone.center = null;
   state.zone.radiusMeters = 0;
-  state.zone.initialCenter = null;
-  state.zone.initialRadius = 0;
   state.zone.nextCenter = null;
   state.zone.nextRadiusMeters = null;
   state.zone.nextShrinkAt = null;

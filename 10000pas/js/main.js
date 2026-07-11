@@ -116,8 +116,6 @@ async function startGame() {
   // 4. Initialiser la zone
   state.zone.center = zoneCenter;
   state.zone.radiusMeters = radiusM;
-  state.zone.initialCenter = zoneCenter;
-  state.zone.initialRadius = radiusM;
 
   // 5. Afficher la carte
   showScreen('game');

@@ -12,6 +12,7 @@ const FALLBACK_TIMEOUT_S = 8;
 const FALLBACK_CLIENT_TIMEOUT_MS = 10000;
 const BASE_BACKOFF_MS = 1000;
 const MAX_BACKOFF_MS = 8000;
+const NAMED_POI_MIN_COUNT = 5;
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
@@ -64,7 +65,21 @@ out body;`;
   way["leisure"~"^(park|garden|common|recreation_ground)$"](around:${Math.round(radiusM)},${lat},${lng});
 );
 node(w);
+(
+  ._;
+  node["amenity"~"^(place_of_worship|townhall|school)$"]["name"](around:${Math.round(radiusM)},${lat},${lng});
+  node["historic"~"^(monument|memorial|castle|ruins)$"]["name"](around:${Math.round(radiusM)},${lat},${lng});
+  node["tourism"~"^(attraction|viewpoint|museum|artwork)$"]["name"](around:${Math.round(radiusM)},${lat},${lng});
+);
 out body;`;
+}
+
+function isNotablePOI(tags) {
+  if (!tags || !tags.name) return false;
+  if (/^(place_of_worship|townhall|school)$/.test(tags.amenity || '')) return true;
+  if (/^(monument|memorial|castle|ruins)$/.test(tags.historic || '')) return true;
+  if (/^(attraction|viewpoint|museum|artwork)$/.test(tags.tourism || '')) return true;
+  return false;
 }
 
 function filterCandidates(nodes, centerLat, centerLng, radiusM) {
@@ -76,7 +91,8 @@ function filterCandidates(nodes, centerLat, centerLng, radiusM) {
 
 function pickRandom(candidates) {
   const pick = candidates[Math.floor(Math.random() * candidates.length)];
-  return { lat: pick.lat, lng: pick.lon };
+  const name = pick.tags?.name;
+  return { lat: pick.lat, lng: pick.lon, ...(name ? { name } : {}) };
 }
 
 function backoffFor(err, attemptIndex) {
@@ -88,11 +104,13 @@ export async function findTargetPoint(centerLat, centerLng, radiusM, onProgress 
   const cached = getCachedCandidates(centerLat, centerLng, radiusM);
   if (cached) {
     const candidates = filterCandidates(
-      cached.map(c => ({ lat: c.lat, lon: c.lng })), centerLat, centerLng, radiusM
+      cached.map(c => ({ lat: c.lat, lon: c.lng, tags: c.tags })), centerLat, centerLng, radiusM
     );
     if (candidates.length > 0) {
       onProgress({ phase: 'cache' });
-      return pickRandom(candidates);
+      const namedPOIs = candidates.filter(c => isNotablePOI(c.tags));
+      const pool = namedPOIs.length >= NAMED_POI_MIN_COUNT ? namedPOIs : candidates;
+      return pickRandom(pool);
     }
   }
 
@@ -108,8 +126,10 @@ export async function findTargetPoint(centerLat, centerLng, radiusM, onProgress 
       const nodes = data.elements.filter(e => e.type === 'node');
       const candidates = filterCandidates(nodes, centerLat, centerLng, radiusM);
       if (candidates.length > 0) {
-        saveCandidatesToCache(centerLat, centerLng, radiusM, candidates.map(c => ({ lat: c.lat, lng: c.lon })));
-        return pickRandom(candidates);
+        saveCandidatesToCache(centerLat, centerLng, radiusM, candidates.map(c => ({ lat: c.lat, lng: c.lon, tags: c.tags })));
+        const namedPOIs = candidates.filter(c => isNotablePOI(c.tags));
+        const pool = namedPOIs.length >= NAMED_POI_MIN_COUNT ? namedPOIs : candidates;
+        return pickRandom(pool);
       }
     } catch (err) {
       await sleep(backoffFor(err, label - 1));

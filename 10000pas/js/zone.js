@@ -5,18 +5,18 @@ import { updateHUD, showScreen, populateResult } from './ui.js';
 import { saveResult } from './storage.js';
 
 // Calcule le nouveau centre avec deux contraintes :
-// 1. dist(C', T)  ≤ newRadius            → cible reste dans le nouveau cercle
-// 2. dist(C', C0) ≤ R0 - newRadius       → nouveau cercle inscrit dans le cercle initial
+// 1. dist(C', T) ≤ newRadius         → cible reste dans le nouveau cercle
+// 2. dist(C', C) ≤ R - newRadius     → nouveau cercle inscrit dans le cercle ACTUEL
+//    (pas le cercle de départ — sinon deux cercles successifs peuvent se chevaucher
+//    sans être emboîtés, ce qui donne l'impression que le cercle suivant "dépasse").
 //
-// L'intersection de ces deux disques est toujours non-vide (T est dans C0).
-// On utilise du rejection sampling pour maximiser l'aléa, avec un fallback
-// déterministe sur le segment T→C0 si nécessaire.
+// L'intersection de ces deux disques est toujours non-vide : par construction, la
+// cible est toujours contenue dans le cercle courant (chaque étape échantillonne
+// dans disk(cible, rayon), donc dist(cible, centre_i) ≤ rayon_i à chaque palier).
 function computeNewCenter(target, newRadius) {
-  const { initialCenter: C0, initialRadius: R0 } = state.zone;
-  const maxDistFromC0 = R0 - newRadius;
+  const { center: C, radiusMeters: R } = state.zone;
+  const maxDistFromC = R - newRadius;
 
-  // Rejection sampling : point aléatoire dans disk(T, newRadius),
-  // accepté seulement s'il est aussi dans disk(C0, R0-newRadius).
   for (let i = 0; i < 50; i++) {
     const angle = Math.random() * 2 * Math.PI;
     const r = Math.sqrt(Math.random()) * newRadius;
@@ -24,21 +24,20 @@ function computeNewCenter(target, newRadius) {
       lat: target.lat + metersToLatDeg(r * Math.sin(angle)),
       lng: target.lng + metersToLngDeg(r * Math.cos(angle), target.lat),
     };
-    if (haversineDistance(candidate.lat, candidate.lng, C0.lat, C0.lng) <= maxDistFromC0) {
+    if (haversineDistance(candidate.lat, candidate.lng, C.lat, C.lng) <= maxDistFromC) {
       return candidate;
     }
   }
 
-  // Fallback déterministe : point sur le segment T→C0 dans la plage valide.
-  // t ∈ [max(0, 1-(R0-R')/d), min(1, R'/d)] paramétrise T→C0.
-  const d = haversineDistance(target.lat, target.lng, C0.lat, C0.lng);
+  // Fallback déterministe : point sur le segment T→C dans la plage valide.
+  const d = haversineDistance(target.lat, target.lng, C.lat, C.lng);
   const dSafe = d || 1;
-  const tMin = Math.max(0, 1 - maxDistFromC0 / dSafe);
+  const tMin = Math.max(0, 1 - maxDistFromC / dSafe);
   const tMax = Math.min(1, newRadius / dSafe);
   const t = (tMin + tMax) / 2;
   return {
-    lat: target.lat + t * (C0.lat - target.lat),
-    lng: target.lng + t * (C0.lng - target.lng),
+    lat: target.lat + t * (C.lat - target.lat),
+    lng: target.lng + t * (C.lng - target.lng),
   };
 }
 
@@ -68,6 +67,7 @@ function endGame(won) {
     distanceKm: Math.round(distanceKm * 100) / 100,
     durationSecs,
     difficulty: state.difficulty,
+    targetName: state.targetPos?.name ?? null,
     date: new Date().toISOString(),
   };
 

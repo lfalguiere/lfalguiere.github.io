@@ -126,20 +126,30 @@ export function showGPSLostBanner(show) {
   if (el) el.style.display = show ? 'flex' : 'none';
 }
 
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
 export function populateResult(result) {
   const el = document.getElementById('result-content');
   if (!el) return;
 
-  const icon = result.won ? '🏆' : '💀';
-  const title = result.won ? 'Victoire !' : 'Défaite';
+  const icon = result.won ? '🏆' : '😞';
+  const title = result.won ? 'Victoire !' : 'Échec !';
   const mins = Math.floor(result.durationSecs / 60);
   const secs = result.durationSecs % 60;
   const timeStr = `${mins}min ${secs}s`;
   const diffLabel = DIFFICULTY[result.difficulty]?.label ?? result.difficulty;
+  const targetNameHtml = result.won && result.targetName
+    ? `<p class="result-target-name">🎯 ${escapeHtml(result.targetName)}</p>`
+    : '';
 
   el.innerHTML = `
     <div class="result-icon">${icon}</div>
     <h2 class="result-title">${title}</h2>
+    ${targetNameHtml}
     <div class="result-stats">
       <div class="stat"><span class="stat-label">Distance</span><span class="stat-value">${result.distanceKm} km</span></div>
       <div class="stat"><span class="stat-label">Durée</span><span class="stat-value">${timeStr}</span></div>
@@ -148,14 +158,16 @@ export function populateResult(result) {
     <div id="result-map"></div>
   `;
 
-  // Rendre la carte récapitulative après que le DOM est mis à jour
-  if (state.positionHistory.length >= 2 && state.zone.initialCenter) {
+  // Rendre la carte récapitulative après que le DOM est mis à jour.
+  // Affiche le dernier cercle (celui qui a déterminé la victoire/défaite),
+  // pas le cercle de départ.
+  if (state.positionHistory.length >= 2 && state.zone.center) {
     requestAnimationFrame(() => {
       renderResultMap(
         'result-map',
         state.positionHistory,
-        state.zone.initialCenter,
-        state.zone.initialRadius,
+        state.zone.center,
+        state.zone.radiusMeters,
       );
     });
   }

@@ -415,6 +415,14 @@ html, body {
   margin-bottom: 1.25rem;
 }
 
+.result-target-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--accent);
+  margin-top: -0.75rem;
+  margin-bottom: 1.25rem;
+}
+
 .result-stats {
   display: flex;
   flex-direction: column;
