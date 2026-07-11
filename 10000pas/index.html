@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0f1117">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Zone Runner</title>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ── Écran Setup ──────────────────────────────────────── -->
+  <div id="screen-setup" class="screen">
+    <div class="setup-header">
+      <h1>Zone Runner</h1>
+      <p>Reste dans la zone. Trouve la cible cachée.</p>
+    </div>
+
+    <div class="setup-card">
+      <h2>Distance</h2>
+      <div class="distance-row">
+        <input
+          type="number"
+          id="distance-input"
+          class="distance-input"
+          value="2"
+          min="0.5"
+          max="15"
+          step="0.5"
+          inputmode="decimal"
+        >
+        <span class="distance-unit">km</span>
+      </div>
+    </div>
+
+    <div class="setup-card">
+      <h2>Difficulté</h2>
+      <div class="difficulty-grid">
+        <button class="difficulty-btn" data-difficulty="easy">Facile</button>
+        <button class="difficulty-btn" data-difficulty="medium">Moyen</button>
+        <button class="difficulty-btn" data-difficulty="hard">Difficile</button>
+      </div>
+    </div>
+
+    <div id="mobile-warning" class="mobile-warning" style="display:none">
+      ⚠ Appareil non mobile détecté — ce jeu nécessite un smartphone avec GPS en extérieur
+    </div>
+    <p id="setup-error" class="setup-error" style="display:none"></p>
+    <p class="setup-gps-note">Requiert un GPS activé (smartphone en extérieur)</p>
+
+    <button id="start-btn" class="start-btn">Démarrer</button>
+
+    <button id="history-toggle" class="history-toggle-btn">Voir l'historique</button>
+    <div id="history-panel">
+      <div id="setup-history-list"></div>
+    </div>
+  </div>
+
+  <!-- ── Écran Loading ────────────────────────────────────── -->
+  <div id="screen-loading" class="screen">
+    <div class="spinner"></div>
+    <p id="loading-message">Chargement…</p>
+  </div>
+
+  <!-- ── Écran Jeu ─────────────────────────────────────────── -->
+  <div id="screen-game" class="screen">
+    <div id="map"></div>
+
+    <!-- HUD haut -->
+    <div class="hud" id="hud-top">
+      <div class="hud-pill" id="hud-radius">Zone : —</div>
+      <div class="hud-pill hud-gps" id="hud-gps">GPS : —</div>
+    </div>
+
+    <!-- HUD bas : countdown + distance -->
+    <div class="hud" id="hud-bottom">
+      <div class="hud-timer" id="hud-countdown"></div>
+      <div class="hud-timer" id="hud-distance"></div>
+    </div>
+
+    <!-- Bannière GPS perdu -->
+    <div id="gps-lost-banner">Signal GPS faible — la zone continue de rétrécir</div>
+  </div>
+
+  <!-- ── Écran Résultat ────────────────────────────────────── -->
+  <div id="screen-result" class="screen">
+    <div id="result-content"></div>
+    <button id="replay-btn" class="replay-btn">Rejouer</button>
+    <div id="result-history">
+      <div id="result-history-list"></div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
