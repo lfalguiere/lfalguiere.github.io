@@ -7,8 +7,14 @@ let trailPolyline = null;
 let animFrame = null;
 let resultMap = null;
 
-// Rectangle couvrant tout le globe, utilisé comme anneau extérieur du masque.
-const WORLD_RING = [[-85, -180], [-85, 180], [85, 180], [85, -180]];
+// Rayon (généreux mais borné) de l'anneau extérieur du masque, relatif au
+// cercle affiché — PAS le globe entier : à très fort zoom (cercle final
+// ~20 m), un anneau couvrant tout le globe produit des coordonnées écran
+// énormes qui cassent le rendu SVG (écran noir). Une marge large mais finie
+// couvre largement tout zoom/pan raisonnable sans ce risque.
+function maskOuterRadius(radiusM) {
+  return Math.max(radiusM * 200, 5000);
+}
 
 // Génère les points d'un cercle géographique (approximation sphérique),
 // utilisés comme anneau intérieur (trou) du polygone-masque.
@@ -45,6 +51,7 @@ export function initMap(containerId) {
   leafletMap = L.map(containerId, {
     zoomControl: false,
     attributionControl: true,
+    zoomSnap: 0,
   });
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -77,7 +84,10 @@ export function updatePlayerPosition(lat, lng) {
 
 function updateMaskRing(lat, lng, radiusM) {
   if (zoneMask) {
-    zoneMask.setLatLngs([WORLD_RING, circleRingPoints(lat, lng, radiusM)]);
+    zoneMask.setLatLngs([
+      circleRingPoints(lat, lng, maskOuterRadius(radiusM), 32),
+      circleRingPoints(lat, lng, radiusM),
+    ]);
   }
 }
 
@@ -92,7 +102,7 @@ export function updateZoneCircle(lat, lng, radiusM, animate = true) {
       fillOpacity: 0,
       interactive: false,
     }).addTo(leafletMap);
-    zoneMask = L.polygon([WORLD_RING, circleRingPoints(lat, lng, radiusM)], {
+    zoneMask = L.polygon([circleRingPoints(lat, lng, maskOuterRadius(radiusM), 32), circleRingPoints(lat, lng, radiusM)], {
       stroke: false,
       fillColor: '#ef5350',
       fillOpacity: 0.18,
@@ -156,10 +166,12 @@ export function hidePreviewCircle() {
   previewCircle = null;
 }
 
+const ZONE_VIEW_PADDING_FACTOR = 2.3; // marge homogène pour fitMapToZone ET zoomToZone
+
 export function fitMapToZone(lat, lng, radiusM) {
   if (!leafletMap) return;
   leafletMap.fitBounds(
-    L.latLng(lat, lng).toBounds(radiusM * 2.2),
+    L.latLng(lat, lng).toBounds(radiusM * ZONE_VIEW_PADDING_FACTOR),
     { animate: false }
   );
 }
@@ -170,7 +182,7 @@ export function zoomToZone(lat, lng, radiusM) {
   if (!leafletMap) return;
   setTimeout(() => {
     leafletMap.flyToBounds(
-      L.latLng(lat, lng).toBounds(radiusM * 2.4),
+      L.latLng(lat, lng).toBounds(radiusM * ZONE_VIEW_PADDING_FACTOR),
       { duration: 1.2, easeLinearity: 0.25 }
     );
   }, 600);
@@ -200,7 +212,7 @@ export function renderResultMap(containerId, positions, circleCenter, circleRadi
     resultMap.remove();
     resultMap = null;
   }
-  if (!positions || positions.length < 2) return;
+  if (!positions || positions.length < 1) return;
 
   resultMap = L.map(containerId, {
     zoomControl: false,
@@ -209,49 +221,59 @@ export function renderResultMap(containerId, positions, circleCenter, circleRadi
     scrollWheelZoom: false,
     doubleClickZoom: false,
     touchZoom: false,
+    zoomSnap: 0,
   });
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
   }).addTo(resultMap);
 
-  // Dernier cercle de la zone (celui qui a déterminé la fin de partie)
+  // Dernier cercle de la zone (celui qui a déterminé la fin de partie).
+  // Remplissage simple à l'intérieur (pas le masque monde-entier-avec-trou
+  // utilisé sur la carte de jeu) : ce widget statique peut cadrer sur un
+  // cercle très petit (rayon final ~20 m) donc un zoom très profond, où le
+  // polygone couvrant tout le globe produirait des coordonnées écran
+  // gigantesques et casserait le rendu (écran noir).
   L.circle([circleCenter.lat, circleCenter.lng], {
     radius: circleRadius,
     color: '#ef5350',
     weight: 1.5,
-    fillOpacity: 0,
-    interactive: false,
-  }).addTo(resultMap);
-  L.polygon([WORLD_RING, circleRingPoints(circleCenter.lat, circleCenter.lng, circleRadius)], {
-    stroke: false,
     fillColor: '#ef5350',
-    fillOpacity: 0.18,
+    fillOpacity: 0.12,
     interactive: false,
   }).addTo(resultMap);
 
-  // Tracé du parcours
-  const latlngs = positions.map(p => [p.lat, p.lng]);
-  const trail = L.polyline(latlngs, {
-    color: '#2196F3',
-    weight: 3,
-    opacity: 0.85,
-    lineJoin: 'round',
-  }).addTo(resultMap);
-
-  // Marqueur de départ (vert) et d'arrivée (rouge)
+  // Tracé du parcours (si au moins 2 points — sinon juste un marqueur unique,
+  // ex. partie très courte où le joueur n'a pas encore assez bougé)
   const start = positions[0];
   const end = positions[positions.length - 1];
-  L.circleMarker([start.lat, start.lng], {
-    radius: 6, color: '#fff', weight: 2, fillColor: '#4caf50', fillOpacity: 1,
-  }).addTo(resultMap);
-  L.circleMarker([end.lat, end.lng], {
-    radius: 6, color: '#fff', weight: 2, fillColor: '#ef5350', fillOpacity: 1,
-  }).addTo(resultMap);
+  let trailBounds;
+  if (positions.length >= 2) {
+    const latlngs = positions.map(p => [p.lat, p.lng]);
+    const trail = L.polyline(latlngs, {
+      color: '#2196F3',
+      weight: 3,
+      opacity: 0.85,
+      lineJoin: 'round',
+    }).addTo(resultMap);
+    trailBounds = trail.getBounds();
+
+    L.circleMarker([start.lat, start.lng], {
+      radius: 6, color: '#fff', weight: 2, fillColor: '#4caf50', fillOpacity: 1,
+    }).addTo(resultMap);
+    L.circleMarker([end.lat, end.lng], {
+      radius: 6, color: '#fff', weight: 2, fillColor: '#ef5350', fillOpacity: 1,
+    }).addTo(resultMap);
+  } else {
+    L.circleMarker([start.lat, start.lng], {
+      radius: 6, color: '#fff', weight: 2, fillColor: '#4caf50', fillOpacity: 1,
+    }).addTo(resultMap);
+    trailBounds = L.latLngBounds([[start.lat, start.lng]]);
+  }
 
   // Zoom pour montrer à la fois tout le parcours ET le dernier cercle
   // (le cercle final est souvent bien plus petit que le trajet parcouru).
-  const bounds = trail.getBounds().extend(
+  const bounds = trailBounds.extend(
     L.latLng(circleCenter.lat, circleCenter.lng).toBounds(circleRadius * 2.2)
   );
   resultMap.fitBounds(bounds, { animate: false, padding: [16, 16] });

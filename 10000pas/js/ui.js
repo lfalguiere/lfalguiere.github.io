@@ -161,7 +161,7 @@ export function populateResult(result) {
   // Rendre la carte récapitulative après que le DOM est mis à jour.
   // Affiche le dernier cercle (celui qui a déterminé la victoire/défaite),
   // pas le cercle de départ.
-  if (state.positionHistory.length >= 2 && state.zone.center) {
+  if (state.positionHistory.length >= 1 && state.zone.center) {
     requestAnimationFrame(() => {
       renderResultMap(
         'result-map',

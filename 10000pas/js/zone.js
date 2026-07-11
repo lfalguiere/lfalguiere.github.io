@@ -59,6 +59,17 @@ function endGame(won) {
     state.gpsWatchId = null;
   }
 
+  // S'assurer que la position finale du joueur figure dans le tracé, même si
+  // elle n'a pas atteint le seuil de 5 m depuis le dernier point enregistré
+  // (parties très courtes) — sinon la carte récapitulative n'a rien à tracer.
+  if (state.playerPos) {
+    const last = state.positionHistory[state.positionHistory.length - 1];
+    const isNew = !last || haversineDistance(last.lat, last.lng, state.playerPos.lat, state.playerPos.lng) > 0;
+    if (isNew) {
+      state.positionHistory.push({ lat: state.playerPos.lat, lng: state.playerPos.lng });
+    }
+  }
+
   const durationSecs = Math.floor((Date.now() - state.startTime) / 1000);
   const distanceKm = state.totalDistanceM / 1000;
 
