@@ -1,5 +1,5 @@
 import { state, DIFFICULTY, GPS_LOSS_THRESHOLD_MS, resetState } from './state.js';
-import { getInitialPosition, startWatching, haversineDistance } from './geo.js';
+import { getInitialPosition, startWatching, haversineDistance, randomPointInDisk } from './geo.js';
 import { findTargetPoint } from './overpass.js';
 import { initMap, invalidateMapSize, updatePlayerPosition, updateZoneCircle, fitMapToZone, updateTrail, renderResultMap } from './map.js';
 import { startZone, checkPlayerInZone } from './zone.js';
@@ -94,10 +94,14 @@ async function startGame() {
   state.startPos = { lat, lng };
   state.positionHistory = [{ lat, lng }];
 
-  // 2. Trouver un point cible accessible via Overpass
-  setLoadingMessage('Recherche d\'un point d\'arrivée…');
+  // 2. Décaler le centre de la zone par rapport à la position du joueur
+  // (sinon le joueur démarre pile au centre et n'a rien à faire au début)
   const radiusM = km * 1000;
-  const target = await findTargetPoint(lat, lng, radiusM, updateLoadingProgress);
+  const zoneCenter = randomPointInDisk(lat, lng, radiusM * 0.7);
+
+  // 3. Trouver un point cible accessible via Overpass, relatif au centre de zone
+  setLoadingMessage('Recherche d\'un point d\'arrivée…');
+  const target = await findTargetPoint(zoneCenter.lat, zoneCenter.lng, radiusM, updateLoadingProgress);
 
   if (!target) {
     alert('Aucun chemin accessible trouvé dans cette zone. Réessayez dans quelques secondes.');
@@ -109,24 +113,24 @@ async function startGame() {
 
   state.targetPos = target;
 
-  // 3. Initialiser la zone
-  state.zone.center = { lat, lng };
+  // 4. Initialiser la zone
+  state.zone.center = zoneCenter;
   state.zone.radiusMeters = radiusM;
-  state.zone.initialCenter = { lat, lng };
+  state.zone.initialCenter = zoneCenter;
   state.zone.initialRadius = radiusM;
 
-  // 4. Afficher la carte
+  // 5. Afficher la carte
   showScreen('game');
   initMap('map');
   requestAnimationFrame(() => {
     invalidateMapSize();
-    fitMapToZone(lat, lng, radiusM);
-    updateZoneCircle(lat, lng, radiusM, false);
+    fitMapToZone(zoneCenter.lat, zoneCenter.lng, radiusM);
+    updateZoneCircle(zoneCenter.lat, zoneCenter.lng, radiusM, false);
     updatePlayerPosition(lat, lng);
     updateGPSBadge(accuracy);
   });
 
-  // 5. Lancer le suivi GPS et les timers de zone
+  // 6. Lancer le suivi GPS et les timers de zone
   state.phase = 'playing';
   state.startTime = Date.now();
   state.lastGpsUpdate = Date.now();

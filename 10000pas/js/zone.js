@@ -1,6 +1,6 @@
 import { state, DIFFICULTY, FINAL_RADIUS_M } from './state.js';
 import { haversineDistance, metersToLatDeg, metersToLngDeg } from './geo.js';
-import { updateZoneCircle, zoomToZone } from './map.js';
+import { updateZoneCircle, zoomToZone, updatePreviewCircle, hidePreviewCircle } from './map.js';
 import { updateHUD, showScreen, populateResult } from './ui.js';
 import { saveResult } from './storage.js';
 
@@ -77,21 +77,29 @@ function endGame(won) {
   showScreen('result');
 }
 
-function shrinkZone() {
+// Réduction absolue = vitesse_cible × durée_intervalle
+// Garantit le même effort physique à chaque palier quelle que soit la taille du cercle.
+function computeNextZone(baseRadius) {
   const cfg = DIFFICULTY[state.difficulty];
-  const oldRadius = state.zone.radiusMeters;
-  // Réduction absolue = vitesse_cible × durée_intervalle
-  // Garantit le même effort physique à chaque palier quelle que soit la taille du cercle.
   const shrinkM = (cfg.speedKmh * 1000 / 3600) * (cfg.intervalMs / 1000);
-  const newRadius = Math.max(FINAL_RADIUS_M, oldRadius - shrinkM);
-
+  const newRadius = Math.max(FINAL_RADIUS_M, baseRadius - shrinkM);
   const newCenter = computeNewCenter(state.targetPos, newRadius);
+  return { center: newCenter, radius: newRadius };
+}
 
-  state.zone.center = newCenter;
-  state.zone.radiusMeters = newRadius;
+function shrinkZone() {
+  // Consomme la prochaine zone précalculée (affichée en aperçu pointillé)
+  // plutôt que de la recalculer, pour que l'aperçu corresponde exactement
+  // au résultat réel du rétrécissement.
+  const next = (state.zone.nextCenter && state.zone.nextRadiusMeters != null)
+    ? { center: state.zone.nextCenter, radius: state.zone.nextRadiusMeters }
+    : computeNextZone(state.zone.radiusMeters);
 
-  updateZoneCircle(newCenter.lat, newCenter.lng, newRadius);
-  zoomToZone(newCenter.lat, newCenter.lng, newRadius);
+  state.zone.center = next.center;
+  state.zone.radiusMeters = next.radius;
+
+  updateZoneCircle(next.center.lat, next.center.lng, next.radius);
+  zoomToZone(next.center.lat, next.center.lng, next.radius);
   updateHUD();
 
   // Vérifier si le joueur est sorti du cercle après le déplacement du centre.
@@ -100,14 +108,23 @@ function shrinkZone() {
   checkPlayerInZone();
 
   // Vérification de fin de partie (rayon minimal)
-  if (newRadius <= FINAL_RADIUS_M) {
+  if (next.radius <= FINAL_RADIUS_M) {
+    state.zone.nextCenter = null;
+    state.zone.nextRadiusMeters = null;
+    hidePreviewCircle();
+
     const distPlayer = state.playerPos
       ? haversineDistance(
           state.playerPos.lat, state.playerPos.lng,
-          newCenter.lat, newCenter.lng
+          next.center.lat, next.center.lng
         )
       : Infinity;
     endGame(distPlayer <= FINAL_RADIUS_M);
+  } else {
+    const following = computeNextZone(next.radius);
+    state.zone.nextCenter = following.center;
+    state.zone.nextRadiusMeters = following.radius;
+    updatePreviewCircle(following.center.lat, following.center.lng, following.radius);
   }
 }
 
@@ -128,6 +145,12 @@ export function checkPlayerInZone() {
 export function startZone() {
   const cfg = DIFFICULTY[state.difficulty];
   state.zone.nextShrinkAt = Date.now() + cfg.intervalMs;
+
+  const preview = computeNextZone(state.zone.radiusMeters);
+  state.zone.nextCenter = preview.center;
+  state.zone.nextRadiusMeters = preview.radius;
+  updatePreviewCircle(preview.center.lat, preview.center.lng, preview.radius);
+
   updateHUD();
 
   state.zone.timerId = setInterval(() => {

@@ -9,6 +9,8 @@ export const state = {
     radiusMeters: 0,
     initialCenter: null,  // centre du cercle de départ (ne change jamais)
     initialRadius: 0,     // rayon du cercle de départ (ne change jamais)
+    nextCenter: null,        // centre précalculé du prochain rétrécissement (aperçu)
+    nextRadiusMeters: null,
     nextShrinkAt: null,
     timerId: null,
     countdownId: null,
@@ -22,11 +24,12 @@ export const state = {
 };
 
 // speedKmh : vitesse cible du joueur à ce niveau.
-// La réduction absolue par palier = speedKmh × intervalMs/3600000 mètres,
-// ce qui donne ~250 m/palier pour tous les niveaux — effort constant tout au long.
-// La difficulté joue sur la fréquence des paliers et la vitesse requise.
+// La réduction absolue par palier = speedKmh × intervalMs/3600000 mètres —
+// effort constant à chaque palier pour un niveau donné. Facile a des paliers
+// plus courts et donc plus petits (~50 m) que Moyen/Difficile (~250 m),
+// pour des retours plus fréquents sans changer le rythme de marche requis.
 export const DIFFICULTY = {
-  easy:   { intervalMs: 300000, speedKmh: 3,  distanceM: 500,  label: 'Facile'     },
+  easy:   { intervalMs: 60000,  speedKmh: 3,  distanceM: 500,  label: 'Facile'     },
   medium: { intervalMs: 180000, speedKmh: 5,  distanceM: 1000, label: 'Moyen'      },
   hard:   { intervalMs:  90000, speedKmh: 10, distanceM: 2000, label: 'Difficile'  },
 };
@@ -47,6 +50,8 @@ export function resetState() {
   state.zone.radiusMeters = 0;
   state.zone.initialCenter = null;
   state.zone.initialRadius = 0;
+  state.zone.nextCenter = null;
+  state.zone.nextRadiusMeters = null;
   state.zone.nextShrinkAt = null;
   state.zone.timerId = null;
   state.zone.countdownId = null;

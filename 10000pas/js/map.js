@@ -2,6 +2,7 @@ let leafletMap = null;
 let playerMarker = null;
 let zoneCircle = null;
 let zoneMask = null;
+let previewCircle = null;
 let trailPolyline = null;
 let animFrame = null;
 let resultMap = null;
@@ -33,6 +34,7 @@ export function initMap(containerId) {
     playerMarker = null;
     zoneCircle = null;
     zoneMask = null;
+    previewCircle = null;
     trailPolyline = null;
   }
   if (resultMap) {
@@ -129,6 +131,30 @@ export function updateZoneCircle(lat, lng, radiusM, animate = true) {
     }
   }
   animFrame = requestAnimationFrame(step);
+}
+
+export function updatePreviewCircle(lat, lng, radiusM) {
+  if (!leafletMap) return;
+  if (!previewCircle) {
+    previewCircle = L.circle([lat, lng], {
+      radius: radiusM,
+      color: '#ef5350',
+      weight: 2,
+      dashArray: '6, 6',
+      fillOpacity: 0,
+      interactive: false,
+    }).addTo(leafletMap);
+    return;
+  }
+  previewCircle.setLatLng([lat, lng]);
+  previewCircle.setRadius(radiusM);
+}
+
+export function hidePreviewCircle() {
+  if (previewCircle && leafletMap) {
+    leafletMap.removeLayer(previewCircle);
+  }
+  previewCircle = null;
 }
 
 export function fitMapToZone(lat, lng, radiusM) {

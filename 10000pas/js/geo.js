@@ -18,6 +18,17 @@ export function metersToLngDeg(meters, lat) {
   return meters / (111320 * Math.cos(lat * Math.PI / 180));
 }
 
+// Point aléatoire dans le disque de rayon maxRadiusM autour de (lat, lng),
+// échantillonné uniformément en surface (r = sqrt(random) * max).
+export function randomPointInDisk(lat, lng, maxRadiusM) {
+  const angle = Math.random() * 2 * Math.PI;
+  const r = Math.sqrt(Math.random()) * maxRadiusM;
+  return {
+    lat: lat + metersToLatDeg(r * Math.sin(angle)),
+    lng: lng + metersToLngDeg(r * Math.cos(angle), lat),
+  };
+}
+
 export function getInitialPosition() {
   return new Promise((resolve, reject) => {
     navigator.geolocation.getCurrentPosition(resolve, reject, {
