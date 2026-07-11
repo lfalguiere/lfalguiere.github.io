@@ -38,6 +38,26 @@ export function setLoadingMessage(msg) {
   if (el) el.textContent = msg;
 }
 
+export function updateLoadingProgress({ phase, attempt, totalAttempts }) {
+  const bar = document.getElementById('loading-progress');
+  const fill = document.getElementById('loading-progress-bar');
+  if (phase === 'cache') {
+    setLoadingMessage('Point d\'arrivée trouvé (cache local)…');
+    if (bar) bar.style.display = 'none';
+    return;
+  }
+  if (bar) bar.style.display = 'block';
+  if (fill) fill.style.width = `${Math.round((attempt / totalAttempts) * 100)}%`;
+  setLoadingMessage(`Recherche d'un point d'arrivée… (tentative ${attempt}/${totalAttempts})`);
+}
+
+export function resetLoadingProgress() {
+  const bar = document.getElementById('loading-progress');
+  const fill = document.getElementById('loading-progress-bar');
+  if (bar) bar.style.display = 'none';
+  if (fill) fill.style.width = '0%';
+}
+
 export function updateHUD() {
   const radiusEl = document.getElementById('hud-radius');
   const countdownEl = document.getElementById('hud-countdown');

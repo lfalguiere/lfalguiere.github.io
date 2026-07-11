@@ -1,9 +1,30 @@
 let leafletMap = null;
 let playerMarker = null;
 let zoneCircle = null;
+let zoneMask = null;
 let trailPolyline = null;
 let animFrame = null;
 let resultMap = null;
+
+// Rectangle couvrant tout le globe, utilisé comme anneau extérieur du masque.
+const WORLD_RING = [[-85, -180], [-85, 180], [85, 180], [85, -180]];
+
+// Génère les points d'un cercle géographique (approximation sphérique),
+// utilisés comme anneau intérieur (trou) du polygone-masque.
+function circleRingPoints(lat, lng, radiusM, numPoints = 72) {
+  const R = 6371000;
+  const φ1 = lat * Math.PI / 180;
+  const λ1 = lng * Math.PI / 180;
+  const δ = radiusM / R;
+  const points = [];
+  for (let i = 0; i <= numPoints; i++) {
+    const θ = (i / numPoints) * 2 * Math.PI;
+    const φ2 = Math.asin(Math.sin(φ1) * Math.cos(δ) + Math.cos(φ1) * Math.sin(δ) * Math.cos(θ));
+    const λ2 = λ1 + Math.atan2(Math.sin(θ) * Math.sin(δ) * Math.cos(φ1), Math.cos(δ) - Math.sin(φ1) * Math.sin(φ2));
+    points.push([φ2 * 180 / Math.PI, ((λ2 * 180 / Math.PI) + 540) % 360 - 180]);
+  }
+  return points;
+}
 
 export function initMap(containerId) {
   if (leafletMap) {
@@ -11,6 +32,7 @@ export function initMap(containerId) {
     leafletMap = null;
     playerMarker = null;
     zoneCircle = null;
+    zoneMask = null;
     trailPolyline = null;
   }
   if (resultMap) {
@@ -52,6 +74,12 @@ export function updatePlayerPosition(lat, lng) {
   leafletMap.panTo([lat, lng], { animate: true, duration: 0.8 });
 }
 
+function updateMaskRing(lat, lng, radiusM) {
+  if (zoneMask) {
+    zoneMask.setLatLngs([WORLD_RING, circleRingPoints(lat, lng, radiusM)]);
+  }
+}
+
 export function updateZoneCircle(lat, lng, radiusM, animate = true) {
   if (!leafletMap) return;
 
@@ -60,8 +88,13 @@ export function updateZoneCircle(lat, lng, radiusM, animate = true) {
       radius: radiusM,
       color: '#ef5350',
       weight: 2,
+      fillOpacity: 0,
+      interactive: false,
+    }).addTo(leafletMap);
+    zoneMask = L.polygon([WORLD_RING, circleRingPoints(lat, lng, radiusM)], {
+      stroke: false,
       fillColor: '#ef5350',
-      fillOpacity: 0.07,
+      fillOpacity: 0.18,
       interactive: false,
     }).addTo(leafletMap);
     return;
@@ -70,6 +103,7 @@ export function updateZoneCircle(lat, lng, radiusM, animate = true) {
   if (!animate) {
     zoneCircle.setLatLng([lat, lng]);
     zoneCircle.setRadius(radiusM);
+    updateMaskRing(lat, lng, radiusM);
     return;
   }
 
@@ -84,11 +118,12 @@ export function updateZoneCircle(lat, lng, radiusM, animate = true) {
   function step(now) {
     const t = Math.min((now - startTime) / duration, 1);
     const ease = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
-    zoneCircle.setLatLng([
-      startLat + (lat - startLat) * ease,
-      startLng + (lng - startLng) * ease,
-    ]);
-    zoneCircle.setRadius(startR + (radiusM - startR) * ease);
+    const curLat = startLat + (lat - startLat) * ease;
+    const curLng = startLng + (lng - startLng) * ease;
+    const curR = startR + (radiusM - startR) * ease;
+    zoneCircle.setLatLng([curLat, curLng]);
+    zoneCircle.setRadius(curR);
+    updateMaskRing(curLat, curLng, curR);
     if (t < 1) {
       animFrame = requestAnimationFrame(step);
     }
@@ -160,8 +195,13 @@ export function renderResultMap(containerId, positions, initialCenter, initialRa
     radius: initialRadius,
     color: '#ef5350',
     weight: 1.5,
+    fillOpacity: 0,
+    interactive: false,
+  }).addTo(resultMap);
+  L.polygon([WORLD_RING, circleRingPoints(initialCenter.lat, initialCenter.lng, initialRadius)], {
+    stroke: false,
     fillColor: '#ef5350',
-    fillOpacity: 0.05,
+    fillOpacity: 0.18,
     interactive: false,
   }).addTo(resultMap);
 

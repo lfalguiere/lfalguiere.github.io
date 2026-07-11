@@ -7,7 +7,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>Zone Runner</title>
+  <title>10000 pas</title>
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="style.css">
@@ -17,25 +17,9 @@
   <!-- ── Écran Setup ──────────────────────────────────────── -->
   <div id="screen-setup" class="screen">
     <div class="setup-header">
-      <h1>Zone Runner</h1>
+      <h1>10000 pas</h1>
+      <p class="mantra">Peu importe la destination, l'important ce sont les petits pas qui y mènent.</p>
       <p>Reste dans la zone. Trouve la cible cachée.</p>
-    </div>
-
-    <div class="setup-card">
-      <h2>Distance</h2>
-      <div class="distance-row">
-        <input
-          type="number"
-          id="distance-input"
-          class="distance-input"
-          value="2"
-          min="0.5"
-          max="15"
-          step="0.5"
-          inputmode="decimal"
-        >
-        <span class="distance-unit">km</span>
-      </div>
     </div>
 
     <div class="setup-card">
@@ -65,6 +49,9 @@
   <div id="screen-loading" class="screen">
     <div class="spinner"></div>
     <p id="loading-message">Chargement…</p>
+    <div id="loading-progress" class="loading-progress" style="display:none;">
+      <div id="loading-progress-bar" class="loading-progress-bar"></div>
+    </div>
   </div>
 
   <!-- ── Écran Jeu ─────────────────────────────────────────── -->

@@ -6,7 +6,7 @@ import { startZone, checkPlayerInZone } from './zone.js';
 import {
   showScreen, setLoadingMessage, updateHUD, updateGPSBadge,
   showGPSLostBanner, renderHistory, showErrorOnSetup, clearSetupError,
-  checkAndShowMobileWarning
+  checkAndShowMobileWarning, updateLoadingProgress, resetLoadingProgress
 } from './ui.js';
 
 let gpsLossCheckId = null;
@@ -57,16 +57,11 @@ function startGpsLossDetection() {
 }
 
 async function startGame() {
-  const distInput = document.getElementById('distance-input');
-  const km = parseFloat(distInput?.value ?? '2');
-  if (isNaN(km) || km < 0.5 || km > 15) {
-    alert('Distance invalide. Choisissez entre 0,5 et 15 km.');
-    return;
-  }
-
+  const km = DIFFICULTY[state.difficulty].distanceM / 1000;
   state.desiredDistanceKm = km;
   state.phase = 'loading';
   showScreen('loading');
+  resetLoadingProgress();
 
   // 1. Obtenir la position GPS initiale
   setLoadingMessage('Acquisition du signal GPS…');
@@ -102,12 +97,13 @@ async function startGame() {
   // 2. Trouver un point cible accessible via Overpass
   setLoadingMessage('Recherche d\'un point d\'arrivée…');
   const radiusM = km * 1000;
-  const target = await findTargetPoint(lat, lng, radiusM);
+  const target = await findTargetPoint(lat, lng, radiusM, updateLoadingProgress);
 
   if (!target) {
-    alert('Aucun chemin accessible trouvé dans cette zone. Essayez une autre distance ou un autre lieu.');
+    alert('Aucun chemin accessible trouvé dans cette zone. Réessayez dans quelques secondes.');
     state.phase = 'setup';
     showScreen('setup');
+    disableStartBtnTemporarily(8000);
     return;
   }
 
@@ -138,6 +134,25 @@ async function startGame() {
   state.gpsWatchId = startWatching(onGpsUpdate, onGpsError);
   startGpsLossDetection();
   startZone();
+}
+
+function disableStartBtnTemporarily(ms) {
+  const btn = document.getElementById('start-btn');
+  if (!btn) return;
+  btn.disabled = true;
+  const original = btn.textContent;
+  let remaining = Math.ceil(ms / 1000);
+  btn.textContent = `Patientez (${remaining}s)…`;
+  const id = setInterval(() => {
+    remaining -= 1;
+    if (remaining <= 0) {
+      clearInterval(id);
+      btn.disabled = false;
+      btn.textContent = original;
+    } else {
+      btn.textContent = `Patientez (${remaining}s)…`;
+    }
+  }, 1000);
 }
 
 function setupUI() {

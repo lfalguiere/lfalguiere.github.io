@@ -63,6 +63,12 @@ html, body {
   margin-top: 0.4rem;
 }
 
+.setup-header p.mantra {
+  font-style: italic;
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
 .setup-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -80,38 +86,6 @@ html, body {
   text-transform: uppercase;
   color: var(--muted);
   margin-bottom: 1rem;
-}
-
-/* Distance input */
-.distance-row {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.distance-input {
-  flex: 1;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--text);
-  font-size: 1.6rem;
-  font-weight: 700;
-  text-align: center;
-  padding: 0.6rem;
-  width: 100%;
-  -moz-appearance: textfield;
-}
-
-.distance-input::-webkit-inner-spin-button,
-.distance-input::-webkit-outer-spin-button {
-  opacity: 0;
-}
-
-.distance-unit {
-  font-size: 1rem;
-  color: var(--muted);
-  white-space: nowrap;
 }
 
 /* Difficulté */
@@ -196,6 +170,11 @@ html, body {
   opacity: 0.85;
 }
 
+.start-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Historique */
 .history-toggle-btn {
   background: none;
@@ -264,6 +243,21 @@ html, body {
   font-size: 1rem;
   text-align: center;
   padding: 0 2rem;
+}
+
+.loading-progress {
+  width: 200px;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.loading-progress-bar {
+  height: 100%;
+  width: 0%;
+  background: var(--accent);
+  transition: width 0.3s ease;
 }
 
 /* ── Écran Game ──────────────────────────────────────────── */

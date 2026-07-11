@@ -1,7 +1,7 @@
 export const state = {
   phase: 'setup', // 'setup' | 'loading' | 'playing' | 'victory' | 'loss'
   difficulty: 'medium',
-  desiredDistanceKm: 2,
+  desiredDistanceKm: null,
   playerPos: null,     // { lat, lng, accuracy }
   targetPos: null,     // { lat, lng } — jamais affiché sur la carte
   zone: {
@@ -26,9 +26,9 @@ export const state = {
 // ce qui donne ~250 m/palier pour tous les niveaux — effort constant tout au long.
 // La difficulté joue sur la fréquence des paliers et la vitesse requise.
 export const DIFFICULTY = {
-  easy:   { intervalMs: 300000, speedKmh: 3,  label: 'Facile'     },
-  medium: { intervalMs: 180000, speedKmh: 5,  label: 'Moyen'      },
-  hard:   { intervalMs:  90000, speedKmh: 10, label: 'Difficile'  },
+  easy:   { intervalMs: 300000, speedKmh: 3,  distanceM: 500,  label: 'Facile'     },
+  medium: { intervalMs: 180000, speedKmh: 5,  distanceM: 1000, label: 'Moyen'      },
+  hard:   { intervalMs:  90000, speedKmh: 10, distanceM: 2000, label: 'Difficile'  },
 };
 
 export const FINAL_RADIUS_M = 20;
