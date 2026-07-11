@@ -143,7 +143,9 @@ export function populateResult(result) {
   const timeStr = `${mins}min ${secs}s`;
   const diffLabel = DIFFICULTY[result.difficulty]?.label ?? result.difficulty;
   const targetNameHtml = result.won && result.targetName
-    ? `<p class="result-target-name">🎯 ${escapeHtml(result.targetName)}</p>`
+    ? (result.targetLink
+        ? `<p class="result-target-name">🎯 <a href="${escapeHtml(result.targetLink)}" target="_blank" rel="noopener noreferrer">${escapeHtml(result.targetName)}</a></p>`
+        : `<p class="result-target-name">🎯 ${escapeHtml(result.targetName)}</p>`)
     : '';
 
   el.innerHTML = `

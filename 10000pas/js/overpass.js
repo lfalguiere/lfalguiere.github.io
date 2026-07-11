@@ -82,6 +82,33 @@ function isNotablePOI(tags) {
   return false;
 }
 
+function isSafeHttpUrl(url) {
+  try {
+    const { protocol } = new URL(url);
+    return protocol === 'http:' || protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+// Priorité : wikipedia > website > wikidata.
+function buildPOILink(tags) {
+  if (!tags) return null;
+  if (tags.wikipedia) {
+    const sep = tags.wikipedia.indexOf(':');
+    if (sep > 0) {
+      const lang = tags.wikipedia.slice(0, sep).trim();
+      const title = tags.wikipedia.slice(sep + 1).trim();
+      if (/^[a-z-]+$/i.test(lang) && title) {
+        return `https://${lang}.wikipedia.org/wiki/${encodeURIComponent(title.replace(/ /g, '_'))}`;
+      }
+    }
+  }
+  if (tags.website && isSafeHttpUrl(tags.website)) return tags.website;
+  if (tags.wikidata && /^Q\d+$/.test(tags.wikidata)) return `https://www.wikidata.org/wiki/${tags.wikidata}`;
+  return null;
+}
+
 function filterCandidates(nodes, centerLat, centerLng, radiusM) {
   return nodes.filter(n => {
     const d = haversineDistance(centerLat, centerLng, n.lat, n.lon);
@@ -92,7 +119,8 @@ function filterCandidates(nodes, centerLat, centerLng, radiusM) {
 function pickRandom(candidates) {
   const pick = candidates[Math.floor(Math.random() * candidates.length)];
   const name = pick.tags?.name;
-  return { lat: pick.lat, lng: pick.lon, ...(name ? { name } : {}) };
+  const link = buildPOILink(pick.tags);
+  return { lat: pick.lat, lng: pick.lon, ...(name ? { name } : {}), ...(link ? { link } : {}) };
 }
 
 function backoffFor(err, attemptIndex) {

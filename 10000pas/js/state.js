@@ -10,6 +10,7 @@ export const state = {
     nextCenter: null,        // centre précalculé du prochain rétrécissement (aperçu)
     nextRadiusMeters: null,
     nextShrinkAt: null,
+    currentIntervalMs: null, // intervalle du palier en cours (recalculé à chaque palier)
     timerId: null,
     countdownId: null,
   },
@@ -21,22 +22,26 @@ export const state = {
   lastGpsUpdate: null,
 };
 
-// speedKmh : vitesse cible du joueur à ce niveau.
-// La réduction absolue par palier = speedKmh × intervalMs/3600000 mètres —
-// effort constant à chaque palier pour un niveau donné. Facile a des paliers
-// plus courts et donc plus petits (~50 m) que Moyen/Difficile (~250 m),
-// pour des retours plus fréquents sans changer le rythme de marche requis.
+// shrinkPct : fraction du rayon courant retirée à chaque palier — pilote le
+// nombre de paliers (faible % = progressif = beaucoup de paliers, adapté aux
+// grandes cartes ; % élevé = rapide = peu de paliers, adapté aux petites).
+// intervalMsPerMeter : temps d'attente par mètre de rayon courant — recalculé
+// à chaque palier (radiusMeters × intervalMsPerMeter), donc le rythme
+// s'accélère naturellement à mesure que le cercle rétrécit.
+// previewLeadRatio : fraction de l'intervalle courant pendant laquelle le
+// cercle pointillé (prochaine zone) devient visible.
+// Valeurs de base à ajuster après tests.
 export const DIFFICULTY = {
-  easy:   { intervalMs: 60000,  speedKmh: 3,  distanceM: 500,  label: 'Facile'     },
-  medium: { intervalMs: 180000, speedKmh: 5,  distanceM: 1000, label: 'Moyen'      },
-  hard:   { intervalMs:  90000, speedKmh: 10, distanceM: 2000, label: 'Difficile'  },
+  easy:   { shrinkPct: 0.50, intervalMsPerMeter: 300, previewLeadRatio: 1 / 3, distanceM: 500,  label: 'Facile'     },
+  medium: { shrinkPct: 0.30, intervalMsPerMeter: 144, previewLeadRatio: 1 / 3, distanceM: 1000, label: 'Moyen'      },
+  hard:   { shrinkPct: 0.20, intervalMsPerMeter: 72,  previewLeadRatio: 1 / 3, distanceM: 2000, label: 'Difficile'  },
 };
 
 export const FINAL_RADIUS_M = 20;
 export const GPS_LOSS_THRESHOLD_MS = 30000;
 
 export function resetState() {
-  clearInterval(state.zone.timerId);
+  clearTimeout(state.zone.timerId);
   clearInterval(state.zone.countdownId);
   if (state.gpsWatchId !== null) {
     navigator.geolocation.clearWatch(state.gpsWatchId);
@@ -49,6 +54,7 @@ export function resetState() {
   state.zone.nextCenter = null;
   state.zone.nextRadiusMeters = null;
   state.zone.nextShrinkAt = null;
+  state.zone.currentIntervalMs = null;
   state.zone.timerId = null;
   state.zone.countdownId = null;
   state.startTime = null;

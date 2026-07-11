@@ -49,7 +49,7 @@ function formatCountdown(ms) {
 }
 
 function endGame(won) {
-  clearInterval(state.zone.timerId);
+  clearTimeout(state.zone.timerId);
   clearInterval(state.zone.countdownId);
   state.zone.timerId = null;
   state.zone.countdownId = null;
@@ -79,6 +79,7 @@ function endGame(won) {
     durationSecs,
     difficulty: state.difficulty,
     targetName: state.targetPos?.name ?? null,
+    targetLink: state.targetPos?.link ?? null,
     date: new Date().toISOString(),
   };
 
@@ -88,12 +89,11 @@ function endGame(won) {
   showScreen('result');
 }
 
-// Réduction absolue = vitesse_cible × durée_intervalle
-// Garantit le même effort physique à chaque palier quelle que soit la taille du cercle.
+// Réduction en pourcentage du rayon courant (cf. DIFFICULTY.shrinkPct) : un
+// pourcentage faible donne des paliers plus nombreux et progressifs.
 function computeNextZone(baseRadius) {
   const cfg = DIFFICULTY[state.difficulty];
-  const shrinkM = (cfg.speedKmh * 1000 / 3600) * (cfg.intervalMs / 1000);
-  const newRadius = Math.max(FINAL_RADIUS_M, baseRadius - shrinkM);
+  const newRadius = Math.max(FINAL_RADIUS_M, baseRadius * (1 - cfg.shrinkPct));
   const newCenter = computeNewCenter(state.targetPos, newRadius);
   return { center: newCenter, radius: newRadius };
 }
@@ -135,8 +135,44 @@ function shrinkZone() {
     const following = computeNextZone(next.radius);
     state.zone.nextCenter = following.center;
     state.zone.nextRadiusMeters = following.radius;
-    updatePreviewCircle(following.center.lat, following.center.lng, following.radius);
+    // Le pointillé ne redevient visible que dans la fenêtre previewLeadRatio
+    // avant le prochain rétrécissement (cf. updatePreviewVisibility) — on le
+    // masque ici pour le nouveau palier qui démarre.
+    hidePreviewCircle();
   }
+}
+
+// Révèle ou masque le cercle pointillé selon le temps restant avant le
+// prochain rétrécissement, par rapport à previewLeadRatio × l'intervalle
+// courant (recalculé à chaque palier, cf. scheduleNextShrink).
+function updatePreviewVisibility() {
+  if (!state.zone.nextCenter || state.zone.nextRadiusMeters == null || !state.zone.nextShrinkAt) return;
+  const cfg = DIFFICULTY[state.difficulty];
+  const leadMs = state.zone.currentIntervalMs * cfg.previewLeadRatio;
+  const remaining = state.zone.nextShrinkAt - Date.now();
+  if (remaining <= leadMs) {
+    updatePreviewCircle(state.zone.nextCenter.lat, state.zone.nextCenter.lng, state.zone.nextRadiusMeters);
+  } else {
+    hidePreviewCircle();
+  }
+}
+
+// Programme le prochain rétrécissement : l'intervalle est proportionnel au
+// rayon courant (radiusMeters × intervalMsPerMeter), donc le rythme
+// s'accélère naturellement à mesure que le cercle rétrécit. Se reprogramme
+// elle-même après chaque shrinkZone() tant que la partie continue.
+function scheduleNextShrink() {
+  const cfg = DIFFICULTY[state.difficulty];
+  const intervalMs = state.zone.radiusMeters * cfg.intervalMsPerMeter;
+  state.zone.currentIntervalMs = intervalMs;
+  state.zone.nextShrinkAt = Date.now() + intervalMs;
+  state.zone.timerId = setTimeout(() => {
+    if (state.phase !== 'playing') return;
+    shrinkZone();
+    if (state.zone.radiusMeters > FINAL_RADIUS_M) {
+      scheduleNextShrink();
+    }
+  }, intervalMs);
 }
 
 export function checkPlayerInZone() {
@@ -154,26 +190,17 @@ export function checkPlayerInZone() {
 }
 
 export function startZone() {
-  const cfg = DIFFICULTY[state.difficulty];
-  state.zone.nextShrinkAt = Date.now() + cfg.intervalMs;
-
   const preview = computeNextZone(state.zone.radiusMeters);
   state.zone.nextCenter = preview.center;
   state.zone.nextRadiusMeters = preview.radius;
-  updatePreviewCircle(preview.center.lat, preview.center.lng, preview.radius);
 
+  scheduleNextShrink();
+  updatePreviewVisibility();
   updateHUD();
-
-  state.zone.timerId = setInterval(() => {
-    if (state.phase !== 'playing') return;
-    shrinkZone();
-    if (state.zone.radiusMeters > FINAL_RADIUS_M) {
-      state.zone.nextShrinkAt = Date.now() + cfg.intervalMs;
-    }
-  }, cfg.intervalMs);
 
   state.zone.countdownId = setInterval(() => {
     if (state.phase !== 'playing') return;
     updateHUD();
+    updatePreviewVisibility();
   }, 1000);
 }

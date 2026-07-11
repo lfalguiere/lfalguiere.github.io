@@ -423,6 +423,12 @@ html, body {
   margin-bottom: 1.25rem;
 }
 
+.result-target-name a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .result-stats {
   display: flex;
   flex-direction: column;
