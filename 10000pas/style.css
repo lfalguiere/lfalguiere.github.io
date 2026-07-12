@@ -340,6 +340,7 @@ html, body {
 
 #hud-countdown {
   cursor: pointer;
+  pointer-events: auto;
 }
 
 .hud-timer-label {
