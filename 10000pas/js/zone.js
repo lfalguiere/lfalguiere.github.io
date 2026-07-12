@@ -157,6 +157,14 @@ function updatePreviewVisibility() {
   }
 }
 
+function onShrinkTimerFire() {
+  if (state.phase !== 'playing') return;
+  shrinkZone();
+  if (state.zone.radiusMeters > FINAL_RADIUS_M) {
+    scheduleNextShrink();
+  }
+}
+
 // Programme le prochain rétrécissement : l'intervalle est proportionnel au
 // rayon courant (radiusMeters × intervalMsPerMeter), donc le rythme
 // s'accélère naturellement à mesure que le cercle rétrécit. Se reprogramme
@@ -166,13 +174,26 @@ function scheduleNextShrink() {
   const intervalMs = state.zone.radiusMeters * cfg.intervalMsPerMeter;
   state.zone.currentIntervalMs = intervalMs;
   state.zone.nextShrinkAt = Date.now() + intervalMs;
-  state.zone.timerId = setTimeout(() => {
-    if (state.phase !== 'playing') return;
-    shrinkZone();
-    if (state.zone.radiusMeters > FINAL_RADIUS_M) {
-      scheduleNextShrink();
-    }
-  }, intervalMs);
+  state.zone.timerId = setTimeout(onShrinkTimerFire, intervalMs);
+}
+
+// Debug/test : un clic sur le timer saute à l'apparition du pointillé (si on
+// n'y est pas encore), un second clic déclenche le rétrécissement immédiat.
+export function skipTimer() {
+  if (state.phase !== 'playing' || state.zone.currentIntervalMs == null || !state.zone.nextShrinkAt) return;
+  const cfg = DIFFICULTY[state.difficulty];
+  const leadMs = state.zone.currentIntervalMs * cfg.previewLeadRatio;
+  const remaining = state.zone.nextShrinkAt - Date.now();
+
+  clearTimeout(state.zone.timerId);
+  if (remaining > leadMs) {
+    state.zone.nextShrinkAt = Date.now() + leadMs;
+    state.zone.timerId = setTimeout(onShrinkTimerFire, leadMs);
+    updatePreviewVisibility();
+    updateHUD();
+  } else {
+    onShrinkTimerFire();
+  }
 }
 
 export function checkPlayerInZone() {

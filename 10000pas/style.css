@@ -338,6 +338,10 @@ html, body {
   white-space: nowrap;
 }
 
+#hud-countdown {
+  cursor: pointer;
+}
+
 .hud-timer-label {
   display: block;
   font-size: 0.68rem;

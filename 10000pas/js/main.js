@@ -2,7 +2,7 @@ import { state, DIFFICULTY, GPS_LOSS_THRESHOLD_MS, resetState } from './state.js
 import { getInitialPosition, startWatching, haversineDistance, randomPointInDisk } from './geo.js';
 import { findTargetPoint } from './overpass.js';
 import { initMap, invalidateMapSize, updatePlayerPosition, updateZoneCircle, fitMapToZone, updateTrail, renderResultMap } from './map.js';
-import { startZone, checkPlayerInZone } from './zone.js';
+import { startZone, checkPlayerInZone, skipTimer } from './zone.js';
 import {
   showScreen, setLoadingMessage, updateHUD, updateGPSBadge,
   showGPSLostBanner, renderHistory, showErrorOnSetup, clearSetupError,
@@ -187,6 +187,9 @@ function setupUI() {
     const panel = document.getElementById('history-panel');
     if (panel) panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
   });
+
+  // Debug/test : clic sur le timer pour sauter à l'aperçu puis au rétrécissement
+  document.getElementById('hud-countdown')?.addEventListener('click', skipTimer);
 
   // Marquer la difficulté par défaut
   document.querySelector('[data-difficulty="medium"]')?.classList.add('active');
