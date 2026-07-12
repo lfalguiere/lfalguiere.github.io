@@ -120,7 +120,16 @@ function pickRandom(candidates) {
   const pick = candidates[Math.floor(Math.random() * candidates.length)];
   const name = pick.tags?.name;
   const link = buildPOILink(pick.tags);
-  return { lat: pick.lat, lng: pick.lon, ...(name ? { name } : {}), ...(link ? { link } : {}) };
+  return {
+    lat: pick.lat,
+    lng: pick.lon,
+    ...(name ? { name } : {}),
+    ...(link ? { link } : {}),
+    // Points de chemin réels du même lot, réutilisés par zone.js pour placer
+    // les centres de zone sur des endroits praticables plutôt qu'un point
+    // géométrique pur.
+    candidates: candidates.map(c => ({ lat: c.lat, lng: c.lon })),
+  };
 }
 
 function backoffFor(err, attemptIndex) {

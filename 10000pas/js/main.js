@@ -20,7 +20,12 @@ function onGpsUpdate(position) {
   // Cumuler la distance et enregistrer le tracé (seulement en jeu, signal acceptable)
   if (state.phase === 'playing' && state.playerPos && accuracy <= 50) {
     const step = haversineDistance(state.playerPos.lat, state.playerPos.lng, lat, lng);
-    if (step > 0 && step < 100) {
+    // Un saut ≥ 100 m est un artefact GPS (glitch/téléportation), pas un vrai
+    // déplacement — il doit être exclu partout (cumul ET historique/tracé),
+    // sinon un point aberrant enregistré une seule fois casse le tracé
+    // affiché de façon permanente pour le reste de la partie.
+    const isPlausibleStep = step > 0 && step < 100;
+    if (isPlausibleStep) {
       state.totalDistanceM += step;
       updateHUD();
     }
@@ -29,10 +34,12 @@ function onGpsUpdate(position) {
     // tracé jusqu'à la position actuelle — sinon, en marchant lentement avec
     // des mises à jour GPS fréquentes, chaque pas reste sous 5 m et le trait
     // bleu n'apparaît jamais avant la fin de partie.
-    if (step >= 5) {
+    if (step >= 5 && isPlausibleStep) {
       state.positionHistory.push({ lat, lng });
     }
-    updateTrail([...state.positionHistory, { lat, lng }]);
+    if (isPlausibleStep) {
+      updateTrail([...state.positionHistory, { lat, lng }]);
+    }
   }
 
   state.playerPos = { lat, lng, accuracy };
@@ -115,7 +122,8 @@ async function startGame() {
     return;
   }
 
-  state.targetPos = target;
+  state.targetPos = { lat: target.lat, lng: target.lng, name: target.name, link: target.link };
+  state.pathCandidates = target.candidates ?? [];
 
   // 4. Initialiser la zone
   state.zone.center = zoneCenter;

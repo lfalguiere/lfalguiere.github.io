@@ -13,9 +13,25 @@ import { saveResult } from './storage.js';
 // L'intersection de ces deux disques est toujours non-vide : par construction, la
 // cible est toujours contenue dans le cercle courant (chaque étape échantillonne
 // dans disk(cible, rayon), donc dist(cible, centre_i) ≤ rayon_i à chaque palier).
+//
+// Préférence : si des points de chemin réels (state.pathCandidates, récupérés
+// via Overpass en début de partie) satisfont les deux contraintes, on choisit
+// parmi eux plutôt qu'un point géométrique pur — réduit le risque que le
+// centre atterrisse dans un bâtiment, une rivière, etc. Repli sur le tirage
+// géométrique si aucun n'est valide (comme avant).
 function computeNewCenter(target, newRadius) {
   const { center: C, radiusMeters: R } = state.zone;
   const maxDistFromC = R - newRadius;
+
+  if (state.pathCandidates.length > 0) {
+    const onPath = state.pathCandidates.filter(p =>
+      haversineDistance(p.lat, p.lng, target.lat, target.lng) <= newRadius &&
+      haversineDistance(p.lat, p.lng, C.lat, C.lng) <= maxDistFromC
+    );
+    if (onPath.length > 0) {
+      return onPath[Math.floor(Math.random() * onPath.length)];
+    }
+  }
 
   for (let i = 0; i < 50; i++) {
     const angle = Math.random() * 2 * Math.PI;
@@ -165,13 +181,21 @@ function onShrinkTimerFire() {
   }
 }
 
-// Programme le prochain rétrécissement : l'intervalle est proportionnel au
-// rayon courant (radiusMeters × intervalMsPerMeter), donc le rythme
-// s'accélère naturellement à mesure que le cercle rétrécit. Se reprogramme
-// elle-même après chaque shrinkZone() tant que la partie continue.
+const BASELINE_MS = 20000; // temps de réaction/logistique incompressible avant chaque palier, indépendant de la distance à parcourir
+
+// Programme le prochain rétrécissement : l'intervalle combine une base fixe
+// (temps de réaction humain — regarder l'écran, s'orienter, démarrer le
+// mouvement — qui ne diminue pas avec la distance) et un terme proportionnel
+// à la distance RÉELLE entre le centre actuel et le prochain centre déjà
+// tiré au sort (pas au rayon). Se reprogramme elle-même après chaque
+// shrinkZone() tant que la partie continue.
 function scheduleNextShrink() {
   const cfg = DIFFICULTY[state.difficulty];
-  const intervalMs = state.zone.radiusMeters * cfg.intervalMsPerMeter;
+  const distanceToNext = haversineDistance(
+    state.zone.center.lat, state.zone.center.lng,
+    state.zone.nextCenter.lat, state.zone.nextCenter.lng
+  );
+  const intervalMs = BASELINE_MS + distanceToNext * cfg.intervalMsPerMeter;
   state.zone.currentIntervalMs = intervalMs;
   state.zone.nextShrinkAt = Date.now() + intervalMs;
   state.zone.timerId = setTimeout(onShrinkTimerFire, intervalMs);

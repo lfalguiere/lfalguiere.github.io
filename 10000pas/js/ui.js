@@ -150,7 +150,7 @@ export function populateResult(result) {
 
   el.innerHTML = `
     <div class="result-icon">${icon}</div>
-    <h2 class="result-title">${title}</h2>
+    <h2 class="result-title${result.won ? ' won' : ''}">${title}</h2>
     ${targetNameHtml}
     <div class="result-stats">
       <div class="stat"><span class="stat-label">Distance</span><span class="stat-value">${result.distanceKm} km</span></div>
