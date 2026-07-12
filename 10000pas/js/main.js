@@ -24,11 +24,15 @@ function onGpsUpdate(position) {
       state.totalDistanceM += step;
       updateHUD();
     }
-    // Enregistrer la position si déplacement > 5 m (évite les doublons à l'arrêt)
+    // Enregistrer la position dans l'historique seulement si déplacement > 5 m
+    // (évite d'accumuler du bruit GPS à l'arrêt), mais toujours redessiner le
+    // tracé jusqu'à la position actuelle — sinon, en marchant lentement avec
+    // des mises à jour GPS fréquentes, chaque pas reste sous 5 m et le trait
+    // bleu n'apparaît jamais avant la fin de partie.
     if (step >= 5) {
       state.positionHistory.push({ lat, lng });
-      updateTrail(state.positionHistory);
     }
+    updateTrail([...state.positionHistory, { lat, lng }]);
   }
 
   state.playerPos = { lat, lng, accuracy };

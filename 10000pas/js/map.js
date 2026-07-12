@@ -147,7 +147,7 @@ export function updatePreviewCircle(lat, lng, radiusM) {
   if (!previewCircle) {
     previewCircle = L.circle([lat, lng], {
       radius: radiusM,
-      color: '#ef5350',
+      color: '#2196F3',
       weight: 2,
       dashArray: '6, 6',
       fillOpacity: 0,
