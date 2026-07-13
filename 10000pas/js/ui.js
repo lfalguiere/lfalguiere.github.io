@@ -1,4 +1,4 @@
-import { state, DIFFICULTY, FINAL_RADIUS_M } from './state.js';
+import { state, DIFFICULTY, getFinalRadius } from './state.js';
 import { loadHistory, getStats } from './storage.js';
 import { renderResultMap } from './map.js';
 
@@ -14,6 +14,22 @@ function estimateSteps(distanceM) {
 
 const STEPS_TIER_MID = 4400;
 const STEPS_TIER_HIGH = 7700;
+
+// Icônes de catégorie affichées uniquement en mode Facile (indice supplémentaire) ;
+// les autres niveaux se contentent de l'icône générique POI / non-POI.
+const POI_ICONS = {
+  place_of_worship: '⛪',
+  townhall: '🏛️',
+  school: '🏫',
+  monument: '🗿',
+  memorial: '🕯️',
+  castle: '🏰',
+  ruins: '🏚️',
+  attraction: '🎡',
+  viewpoint: '📸',
+  museum: '🖼️',
+  artwork: '🎨',
+};
 
 // Cumul des pas du jour : parties déjà terminées aujourd'hui (historique
 // local) + distance de la partie en cours en temps réel.
@@ -104,7 +120,7 @@ export function updateHUD() {
       : `⌀ ${d} m`;
 
     // Colore selon l'urgence (seuil basé sur le rayon réel, pas le diamètre affiché)
-    if (state.zone.radiusMeters <= FINAL_RADIUS_M * 3) {
+    if (state.zone.radiusMeters <= getFinalRadius() * 3) {
       radiusEl.classList.add('hud-danger');
     } else {
       radiusEl.classList.remove('hud-danger');
@@ -112,7 +128,7 @@ export function updateHUD() {
   }
 
   if (countdownEl && state.zone.nextShrinkAt) {
-    if (state.zone.radiusMeters <= FINAL_RADIUS_M) {
+    if (state.zone.radiusMeters <= getFinalRadius()) {
       countdownEl.innerHTML = '';
     } else {
       const remaining = state.zone.nextShrinkAt - Date.now();
@@ -122,6 +138,22 @@ export function updateHUD() {
         <span class="hud-timer-label">Rétrécissement dans</span>
         <span class="hud-timer-value${urgent ? ' timer-urgent' : ''}">${timeStr}</span>
       `;
+    }
+  }
+
+  const targetTypeEl = document.getElementById('hud-target-type');
+  if (targetTypeEl) {
+    const isPOI = !!state.targetPos?.name;
+    const detailedIcon = state.difficulty === 'easy' ? POI_ICONS[state.targetPos?.poiType] : null;
+    if (detailedIcon) {
+      targetTypeEl.textContent = detailedIcon;
+      targetTypeEl.title = `Cible : ${state.targetPos.poiType}`;
+    } else if (isPOI) {
+      targetTypeEl.textContent = '🏛️';
+      targetTypeEl.title = 'Cible : POI notable';
+    } else {
+      targetTypeEl.textContent = '📍';
+      targetTypeEl.title = 'Cible : point anonyme';
     }
   }
 

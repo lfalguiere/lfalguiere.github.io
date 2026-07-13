@@ -1,4 +1,4 @@
-import { state, DIFFICULTY, FINAL_RADIUS_M } from './state.js';
+import { state, DIFFICULTY, getFinalRadius } from './state.js';
 import { haversineDistance, metersToLatDeg, metersToLngDeg } from './geo.js';
 import { updateZoneCircle, zoomToZone, updatePreviewCircle, hidePreviewCircle } from './map.js';
 import { updateHUD, showScreen, populateResult } from './ui.js';
@@ -109,7 +109,7 @@ function endGame(won) {
 // pourcentage faible donne des paliers plus nombreux et progressifs.
 function computeNextZone(baseRadius) {
   const cfg = DIFFICULTY[state.difficulty];
-  const newRadius = Math.max(FINAL_RADIUS_M, baseRadius * (1 - cfg.shrinkPct));
+  const newRadius = Math.max(getFinalRadius(), baseRadius * (1 - cfg.shrinkPct));
   const newCenter = computeNewCenter(state.targetPos, newRadius);
   return { center: newCenter, radius: newRadius };
 }
@@ -135,7 +135,7 @@ function shrinkZone() {
   checkPlayerInZone();
 
   // Vérification de fin de partie (rayon minimal)
-  if (next.radius <= FINAL_RADIUS_M) {
+  if (next.radius <= getFinalRadius()) {
     state.zone.nextCenter = null;
     state.zone.nextRadiusMeters = null;
     hidePreviewCircle();
@@ -146,7 +146,7 @@ function shrinkZone() {
           next.center.lat, next.center.lng
         )
       : Infinity;
-    endGame(distPlayer <= FINAL_RADIUS_M);
+    endGame(distPlayer <= getFinalRadius());
   } else {
     const following = computeNextZone(next.radius);
     state.zone.nextCenter = following.center;
@@ -176,7 +176,7 @@ function updatePreviewVisibility() {
 function onShrinkTimerFire() {
   if (state.phase !== 'playing') return;
   shrinkZone();
-  if (state.zone.radiusMeters > FINAL_RADIUS_M) {
+  if (state.zone.radiusMeters > getFinalRadius()) {
     scheduleNextShrink();
   }
 }

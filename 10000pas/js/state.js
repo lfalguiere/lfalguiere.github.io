@@ -48,6 +48,18 @@ export const DIFFICULTY = {
 };
 
 export const FINAL_RADIUS_M = 20;
+// Rayon final plus généreux quand la cible est un POI notable (église, mairie,
+// école, musée...) : ces cibles correspondent souvent à un bâtiment avec une
+// vraie emprise au sol, pas un point ponctuel — sans quoi le cercle final peut
+// atterrir entièrement à l'intérieur d'un grand bâtiment fermé au public,
+// rendant la partie impossible à terminer. Valeur fixe (on ne connaît pas la
+// taille réelle du bâtiment, juste un nœud OSM), à ajuster après tests.
+export const FINAL_RADIUS_POI_M = 40;
+
+export function getFinalRadius() {
+  return state.targetPos?.name ? FINAL_RADIUS_POI_M : FINAL_RADIUS_M;
+}
+
 export const GPS_LOSS_THRESHOLD_MS = 30000;
 
 export function resetState() {

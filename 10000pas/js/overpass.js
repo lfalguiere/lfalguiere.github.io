@@ -74,12 +74,16 @@ node(w);
 out body;`;
 }
 
+function getPOICategory(tags) {
+  if (!tags || !tags.name) return null;
+  if (/^(place_of_worship|townhall|school)$/.test(tags.amenity || '')) return tags.amenity;
+  if (/^(monument|memorial|castle|ruins)$/.test(tags.historic || '')) return tags.historic;
+  if (/^(attraction|viewpoint|museum|artwork)$/.test(tags.tourism || '')) return tags.tourism;
+  return null;
+}
+
 function isNotablePOI(tags) {
-  if (!tags || !tags.name) return false;
-  if (/^(place_of_worship|townhall|school)$/.test(tags.amenity || '')) return true;
-  if (/^(monument|memorial|castle|ruins)$/.test(tags.historic || '')) return true;
-  if (/^(attraction|viewpoint|museum|artwork)$/.test(tags.tourism || '')) return true;
-  return false;
+  return getPOICategory(tags) !== null;
 }
 
 function isSafeHttpUrl(url) {
@@ -120,11 +124,13 @@ function pickRandom(candidates) {
   const pick = candidates[Math.floor(Math.random() * candidates.length)];
   const name = pick.tags?.name;
   const link = buildPOILink(pick.tags);
+  const poiType = getPOICategory(pick.tags);
   return {
     lat: pick.lat,
     lng: pick.lon,
     ...(name ? { name } : {}),
     ...(link ? { link } : {}),
+    ...(poiType ? { poiType } : {}),
     // Points de chemin réels du même lot, réutilisés par zone.js pour placer
     // les centres de zone sur des endroits praticables plutôt qu'un point
     // géométrique pur.

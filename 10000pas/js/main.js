@@ -131,7 +131,7 @@ async function startGame() {
     return;
   }
 
-  state.targetPos = { lat: target.lat, lng: target.lng, name: target.name, link: target.link };
+  state.targetPos = { lat: target.lat, lng: target.lng, name: target.name, link: target.link, poiType: target.poiType };
   state.pathCandidates = target.candidates ?? [];
 
   // 4. Initialiser la zone
