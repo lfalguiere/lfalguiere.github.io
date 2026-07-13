@@ -4,6 +4,8 @@ import { renderResultMap } from './map.js';
 
 const SCREENS = ['setup', 'loading', 'game', 'result'];
 
+let showStepsMode = true; // affichage du pill "Parcouru" : true = Pas, false = Distance
+
 const AVG_STEP_LENGTH_M = 0.75; // longueur de foulée moyenne (marche), pour estimer le nombre de pas
 
 function estimateSteps(distanceM) {
@@ -78,6 +80,11 @@ export function resetLoadingProgress() {
   if (fill) fill.style.width = '0%';
 }
 
+export function toggleDistanceDisplay() {
+  showStepsMode = !showStepsMode;
+  updateHUD();
+}
+
 export function updateHUD() {
   const radiusEl = document.getElementById('hud-radius');
   const countdownEl = document.getElementById('hud-countdown');
@@ -121,14 +128,18 @@ export function updateHUD() {
   const distEl = document.getElementById('hud-distance');
   if (distEl) {
     const m = state.totalDistanceM;
-    const distStr = m >= 1000
-      ? `${(m / 1000).toFixed(2)} km`
-      : `${Math.round(m)} m`;
-    const steps = estimateSteps(m).toLocaleString('fr-FR');
-    distEl.innerHTML = `
-      <span class="hud-timer-label">Parcouru</span>
-      <span class="hud-timer-value">${distStr} · ${steps} pas</span>
-    `;
+    if (showStepsMode) {
+      const steps = estimateSteps(m).toLocaleString('fr-FR');
+      distEl.innerHTML = `
+        <span class="hud-timer-label">Pas</span>
+        <span class="hud-timer-value">${steps}</span>
+      `;
+    } else {
+      distEl.innerHTML = `
+        <span class="hud-timer-label">Distance</span>
+        <span class="hud-timer-value">${Math.round(m)} m</span>
+      `;
+    }
   }
 }
 

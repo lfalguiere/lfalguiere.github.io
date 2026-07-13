@@ -6,7 +6,8 @@ import { startZone, checkPlayerInZone, skipTimer } from './zone.js';
 import {
   showScreen, setLoadingMessage, updateHUD, updateGPSBadge,
   showGPSLostBanner, renderHistory, showErrorOnSetup, clearSetupError,
-  checkAndShowMobileWarning, updateLoadingProgress, resetLoadingProgress
+  checkAndShowMobileWarning, updateLoadingProgress, resetLoadingProgress,
+  toggleDistanceDisplay
 } from './ui.js';
 
 let gpsLossCheckId = null;
@@ -203,6 +204,9 @@ function setupUI() {
 
   // Debug/test : clic sur le timer pour sauter à l'aperçu puis au rétrécissement
   document.getElementById('hud-countdown')?.addEventListener('click', skipTimer);
+
+  // Bascule Pas/Distance au clic sur le pill "Parcouru"
+  document.getElementById('hud-distance')?.addEventListener('click', toggleDistanceDisplay);
 
   // Marquer la difficulté par défaut
   document.querySelector('[data-difficulty="medium"]')?.classList.add('active');

@@ -360,6 +360,11 @@ html, body {
   pointer-events: auto;
 }
 
+#hud-distance {
+  cursor: pointer;
+  pointer-events: auto;
+}
+
 .hud-timer-label {
   display: block;
   font-size: 0.68rem;
