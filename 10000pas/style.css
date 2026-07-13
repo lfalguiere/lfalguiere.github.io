@@ -306,6 +306,7 @@ html, body {
 
 #hud-radius {
   color: var(--text);
+  font-size: 1.05rem;
 }
 
 #hud-radius.hud-danger {
@@ -325,6 +326,7 @@ html, body {
   top: max(env(safe-area-inset-top, 0px), 0.5rem);
   color: #ff9800;
   transition: color 0.3s;
+  font-size: 1.05rem;
 }
 
 .hud-daily-steps.tier-mid {
@@ -333,6 +335,13 @@ html, body {
 
 .hud-daily-steps.tier-high {
   color: var(--green);
+}
+
+.hud-top-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.4rem;
 }
 
 #hud-bottom {
@@ -377,7 +386,6 @@ html, body {
   font-size: 1.3rem;
   backdrop-filter: blur(8px);
   flex-shrink: 0;
-  align-self: center;
 }
 
 .hud-timer-label {

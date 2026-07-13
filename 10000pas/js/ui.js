@@ -108,7 +108,7 @@ export function updateHUD() {
 
   if (dailyStepsEl) {
     const steps = getTodaySteps();
-    dailyStepsEl.textContent = `${steps.toLocaleString('fr-FR')} pas aujourd'hui`;
+    dailyStepsEl.textContent = `Déjà ${steps.toLocaleString('fr-FR')} pas`;
     dailyStepsEl.classList.toggle('tier-high', steps >= STEPS_TIER_HIGH);
     dailyStepsEl.classList.toggle('tier-mid', steps >= STEPS_TIER_MID && steps < STEPS_TIER_HIGH);
   }
