@@ -4,6 +4,26 @@ import { renderResultMap } from './map.js';
 
 const SCREENS = ['setup', 'loading', 'game', 'result'];
 
+const AVG_STEP_LENGTH_M = 0.75; // longueur de foulée moyenne (marche), pour estimer le nombre de pas
+
+function estimateSteps(distanceM) {
+  return Math.round(distanceM / AVG_STEP_LENGTH_M);
+}
+
+const STEPS_TIER_MID = 4400;
+const STEPS_TIER_HIGH = 7700;
+
+// Cumul des pas du jour : parties déjà terminées aujourd'hui (historique
+// local) + distance de la partie en cours en temps réel.
+function getTodaySteps() {
+  const todayStr = new Date().toDateString();
+  const historyM = loadHistory()
+    .filter(h => new Date(h.date).toDateString() === todayStr)
+    .reduce((sum, h) => sum + h.distanceKm * 1000, 0);
+  const liveM = state.phase === 'playing' ? state.totalDistanceM : 0;
+  return estimateSteps(historyM + liveM);
+}
+
 export function showScreen(name) {
   SCREENS.forEach(s => {
     const el = document.getElementById(`screen-${s}`);
@@ -61,15 +81,23 @@ export function resetLoadingProgress() {
 export function updateHUD() {
   const radiusEl = document.getElementById('hud-radius');
   const countdownEl = document.getElementById('hud-countdown');
+  const dailyStepsEl = document.getElementById('hud-daily-steps');
+
+  if (dailyStepsEl) {
+    const steps = getTodaySteps();
+    dailyStepsEl.textContent = `${steps.toLocaleString('fr-FR')} pas aujourd'hui`;
+    dailyStepsEl.classList.toggle('tier-high', steps >= STEPS_TIER_HIGH);
+    dailyStepsEl.classList.toggle('tier-mid', steps >= STEPS_TIER_MID && steps < STEPS_TIER_HIGH);
+  }
 
   if (radiusEl) {
-    const r = Math.round(state.zone.radiusMeters);
-    radiusEl.textContent = r >= 1000
-      ? `Zone : ${(r / 1000).toFixed(1)} km`
-      : `Zone : ${r} m`;
+    const d = Math.round(state.zone.radiusMeters * 2);
+    radiusEl.textContent = d >= 1000
+      ? `⌀ ${(d / 1000).toFixed(1)} km`
+      : `⌀ ${d} m`;
 
-    // Colore le rayon selon l'urgence
-    if (r <= FINAL_RADIUS_M * 3) {
+    // Colore selon l'urgence (seuil basé sur le rayon réel, pas le diamètre affiché)
+    if (state.zone.radiusMeters <= FINAL_RADIUS_M * 3) {
       radiusEl.classList.add('hud-danger');
     } else {
       radiusEl.classList.remove('hud-danger');
@@ -96,9 +124,10 @@ export function updateHUD() {
     const distStr = m >= 1000
       ? `${(m / 1000).toFixed(2)} km`
       : `${Math.round(m)} m`;
+    const steps = estimateSteps(m).toLocaleString('fr-FR');
     distEl.innerHTML = `
       <span class="hud-timer-label">Parcouru</span>
-      <span class="hud-timer-value">${distStr}</span>
+      <span class="hud-timer-value">${distStr} · ${steps} pas</span>
     `;
   }
 }
@@ -153,7 +182,7 @@ export function populateResult(result) {
     <h2 class="result-title${result.won ? ' won' : ''}">${title}</h2>
     ${targetNameHtml}
     <div class="result-stats">
-      <div class="stat"><span class="stat-label">Distance</span><span class="stat-value">${result.distanceKm} km</span></div>
+      <div class="stat"><span class="stat-label">Distance</span><span class="stat-value">${result.distanceKm} km · ${estimateSteps(result.distanceKm * 1000).toLocaleString('fr-FR')} pas</span></div>
       <div class="stat"><span class="stat-label">Durée</span><span class="stat-value">${timeStr}</span></div>
       <div class="stat"><span class="stat-label">Difficulté</span><span class="stat-value">${diffLabel}</span></div>
     </div>

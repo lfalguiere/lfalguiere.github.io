@@ -17,28 +17,33 @@ function onGpsUpdate(position) {
 
   const { latitude: lat, longitude: lng, accuracy } = position.coords;
 
-  // Cumuler la distance et enregistrer le tracé (seulement en jeu, signal acceptable)
-  if (state.phase === 'playing' && state.playerPos && accuracy <= 50) {
-    const step = haversineDistance(state.playerPos.lat, state.playerPos.lng, lat, lng);
-    // Un saut ≥ 100 m est un artefact GPS (glitch/téléportation), pas un vrai
-    // déplacement — il doit être exclu partout (cumul ET historique/tracé),
-    // sinon un point aberrant enregistré une seule fois casse le tracé
-    // affiché de façon permanente pour le reste de la partie.
-    const isPlausibleStep = step > 0 && step < 100;
-    if (isPlausibleStep) {
-      state.totalDistanceM += step;
-      updateHUD();
-    }
-    // Enregistrer la position dans l'historique seulement si déplacement > 5 m
-    // (évite d'accumuler du bruit GPS à l'arrêt), mais toujours redessiner le
-    // tracé jusqu'à la position actuelle — sinon, en marchant lentement avec
-    // des mises à jour GPS fréquentes, chaque pas reste sous 5 m et le trait
-    // bleu n'apparaît jamais avant la fin de partie.
-    if (step >= 5 && isPlausibleStep) {
-      state.positionHistory.push({ lat, lng });
-    }
-    if (isPlausibleStep) {
-      updateTrail([...state.positionHistory, { lat, lng }]);
+  // Cumuler la distance et enregistrer le tracé (seulement en jeu, signal acceptable).
+  // state.lastTrailPos (pas state.playerPos) sert de référence pour le calcul de
+  // pas : elle n'est mise à jour que sur un pas plausible, donc une lecture GPS
+  // aberrante ne peut jamais devenir la référence des comparaisons suivantes —
+  // sinon, un signal erratique prolongé (sous des arbres, etc.) peut bloquer le
+  // tracé durablement même après le retour d'un bon signal.
+  if (state.phase === 'playing' && accuracy <= 50) {
+    if (!state.lastTrailPos) {
+      state.lastTrailPos = { lat, lng };
+    } else {
+      const step = haversineDistance(state.lastTrailPos.lat, state.lastTrailPos.lng, lat, lng);
+      // Un saut ≥ 100 m est un artefact GPS (glitch/téléportation), pas un vrai
+      // déplacement — ignoré, et la référence n'avance pas.
+      if (step > 0 && step < 100) {
+        state.totalDistanceM += step;
+        updateHUD();
+        // Enregistrer la position dans l'historique seulement si déplacement > 5 m
+        // (évite d'accumuler du bruit GPS à l'arrêt), mais toujours redessiner le
+        // tracé jusqu'à la position actuelle — sinon, en marchant lentement avec
+        // des mises à jour GPS fréquentes, chaque pas reste sous 5 m et le trait
+        // bleu n'apparaît jamais avant la fin de partie.
+        if (step >= 5) {
+          state.positionHistory.push({ lat, lng });
+        }
+        updateTrail([...state.positionHistory, { lat, lng }]);
+        state.lastTrailPos = { lat, lng };
+      }
     }
   }
 

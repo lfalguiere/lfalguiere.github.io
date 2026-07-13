@@ -3,6 +3,7 @@ export const state = {
   difficulty: 'medium',
   desiredDistanceKm: null,
   playerPos: null,     // { lat, lng, accuracy }
+  lastTrailPos: null,  // { lat, lng } — référence pour le calcul de pas/tracé, mise à jour seulement sur un pas plausible (résistant aux sauts GPS aberrants)
   targetPos: null,     // { lat, lng } — jamais affiché sur la carte
   pathCandidates: [],  // [{lat,lng}] — points de chemin réels (Overpass) réutilisés pour placer les centres de zone sur des endroits praticables
   zone: {
@@ -57,6 +58,7 @@ export function resetState() {
   }
   state.phase = 'setup';
   state.playerPos = null;
+  state.lastTrailPos = null;
   state.targetPos = null;
   state.pathCandidates = [];
   state.zone.center = null;

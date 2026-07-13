@@ -318,6 +318,23 @@ html, body {
   50% { opacity: 0.6; }
 }
 
+.hud-daily-steps {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: max(env(safe-area-inset-top, 0px), 0.5rem);
+  color: #ff9800;
+  transition: color 0.3s;
+}
+
+.hud-daily-steps.tier-mid {
+  color: #ffffff;
+}
+
+.hud-daily-steps.tier-high {
+  color: var(--green);
+}
+
 #hud-bottom {
   bottom: calc(env(safe-area-inset-bottom, 0px) + 0.75rem);
   left: 50%;
