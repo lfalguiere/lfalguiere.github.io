@@ -169,7 +169,12 @@ export async function findTargetPoint(centerLat, centerLng, radiusM, onProgress 
       const nodes = data.elements.filter(e => e.type === 'node');
       const candidates = filterCandidates(nodes, centerLat, centerLng, radiusM);
       if (candidates.length > 0) {
-        saveCandidatesToCache(centerLat, centerLng, radiusM, candidates.map(c => ({ lat: c.lat, lng: c.lon, tags: c.tags })));
+        // On met en cache les nœuds bruts (avant filtrage par anneau), pas le
+        // sous-ensemble déjà filtré : sinon une partie suivante au même endroit
+        // (centre de zone différent, donc anneau différent) hérite d'un jeu de
+        // données tronqué par l'anneau de LA PREMIÈRE partie, perdant pour de
+        // bon des POI valides pour son propre anneau.
+        saveCandidatesToCache(centerLat, centerLng, radiusM, nodes.map(c => ({ lat: c.lat, lng: c.lon, tags: c.tags })));
         const namedPOIs = candidates.filter(c => isNotablePOI(c.tags));
         const pool = namedPOIs.length >= NAMED_POI_MIN_COUNT ? namedPOIs : candidates;
         return pickRandom(pool);
