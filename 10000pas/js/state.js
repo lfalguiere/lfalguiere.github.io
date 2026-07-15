@@ -31,10 +31,13 @@ export const state = {
 // centre actuel et le prochain centre déjà tiré au sort (pas le rayon — la
 // distance réelle est souvent bien inférieure au pire cas théorique R×shrinkPct,
 // donc le temps donné colle à ce qu'il faut vraiment parcourir ce palier-là).
-// Calibré pour qu'un joueur à la vitesse supposée du niveau (marche/marche
-// rapide/course) ait le temps de parcourir cette distance avec une marge de
-// sécurité ×1.5 au-dessus du minimum théorique (ligne droite parfaite) :
-// intervalMsPerMeter = 1.5 × 1000 / vitesse_m_s.
+// Calibré pour qu'un joueur à 3 km/h (marche) ait le temps de parcourir cette
+// distance avec une marge de sécurité ×1.5 au-dessus du minimum théorique
+// (ligne droite parfaite) : intervalMsPerMeter = 1.5 × 1000 / vitesse_m_s.
+// Même vitesse supposée pour les trois niveaux (auparavant plus rapide en
+// Moyen/Difficile — 5 puis 9 km/h — ce qui double-pénalisait ces niveaux,
+// déjà plus difficiles via une carte plus grande et des paliers plus
+// nombreux/agressifs) : seules shrinkPct et distanceM distinguent les niveaux.
 // L'intervalle réel ajoute aussi BASELINE_MS (zone.js, 20s partagé entre les
 // niveaux) — un temps de réaction/logistique incompressible qui ne diminue
 // pas avec la distance, sans quoi les paliers de fin de partie (distance très
@@ -43,8 +46,8 @@ export const state = {
 // cercle pointillé (prochaine zone) devient visible.
 export const DIFFICULTY = {
   easy:   { shrinkPct: 0.50, intervalMsPerMeter: 1800, previewLeadRatio: 1 / 2, distanceM: 500,  label: 'Facile'     },
-  medium: { shrinkPct: 0.30, intervalMsPerMeter: 1080, previewLeadRatio: 1 / 2, distanceM: 1000, label: 'Moyen'      },
-  hard:   { shrinkPct: 0.20, intervalMsPerMeter: 600,  previewLeadRatio: 1 / 2, distanceM: 2000, label: 'Difficile'  },
+  medium: { shrinkPct: 0.30, intervalMsPerMeter: 1800, previewLeadRatio: 1 / 2, distanceM: 1000, label: 'Moyen'      },
+  hard:   { shrinkPct: 0.20, intervalMsPerMeter: 1800, previewLeadRatio: 1 / 2, distanceM: 2000, label: 'Difficile'  },
 };
 
 export const FINAL_RADIUS_M = 20;
